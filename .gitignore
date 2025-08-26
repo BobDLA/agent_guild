@@ -13,14 +13,19 @@ ENV/
 env.bak/
 venv.bak/
 
-# Database files
+# Database files (exclude main classification database)
 *.db
 *.sqlite
 *.sqlite3
 agent_guild.db
+# Allow the main classification database
+!data/db/agents.db
 
 # Data directories (repositories are downloaded/cloned)
-data/
+data/repositories/
+data/temp/
+# Allow db directory for classification data
+!data/db/
 
 # IDE files
 .vscode/
