@@ -1,0 +1,80 @@
+<!-- Selection Summary Partial -->
+<div data-selection-count="{{ selection_count }}">
+    {% if selected_agents %}
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="font-medium text-gray-900">Selected Partners ({{ selection_count }})</h3>
+            <button 
+                onclick="clearSelection()"
+                class="text-sm text-gray-500 hover:text-gray-700"
+            >
+                Clear All
+            </button>
+        </div>
+        
+        {% for agent in selected_agents %}
+        <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+            <div class="flex-1">
+                <div class="text-sm font-medium text-gray-900">{{ agent.name }}</div>
+                <div class="text-xs text-gray-500">
+                    {% if agent.primary_classification %}
+                    {{ agent.primary_classification.role_type.replace('-', ' ').title() }}
+                    {% endif %}
+                </div>
+            </div>
+            <button 
+                onclick="removeFromSelection({{ agent.id }})"
+                class="text-red-500 hover:text-red-700 text-sm"
+            >
+                ✕
+            </button>
+        </div>
+        {% endfor %}
+        
+        <div class="pt-3 border-t border-gray-200">
+            <div class="flex gap-2">
+                <a href="/compare?agent_ids={{ selected_agents|map(attribute='id')|join(',') }}" 
+                   class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
+                    Compare All
+                </a>
+                <button 
+                    onclick="downloadSelection()"
+                    class="flex-1 bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition-colors"
+                >
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-6 text-gray-500">
+        <div class="text-2xl mb-2">📦</div>
+        <div class="text-sm">No partners selected</div>
+        <div class="text-xs text-gray-400 mt-1">
+            Select partners to compare or download
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function clearSelection() {
+    fetch('/api/downloads/selection/clear', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            session_id: getSessionId()
+        })
+    }).then(() => {
+        // Reload selection summary
+        htmx.trigger('#selection-summary', 'reload');
+        updateSelectionCounter();
+    });
+}
+
+function downloadSelection() {
+    window.location.href = '/download';
+}
+</script>

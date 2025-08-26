@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+
+{% block title %}Download AI Partners - Subagent Guild{% endblock %}
+
+{% block extra_head %}
+<style>
+    .download-progress {
+        display: none;
+    }
+    
+    .download-progress.active {
+        display: block;
+    }
+    
+    .package-option {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .package-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .package-option.selected {
+        border-color: #7c3aed;
+        background-color: #f3f4f6;
+    }
+    
+    .selection-item {
+        transition: all 0.2s ease;
+    }
+    
+    .selection-item:hover {
+        background-color: #f9fafb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    📦 Download AI Partners
+                </h1>
+                <p class="mt-2 text-gray-600">
+                    Package your selected AI partners for easy integration
+                </p>
+            </div>
+            
+            <!-- Selection Summary -->
+            <div class="mt-6 lg:mt-0" x-data="{ selectedCount: 0 }">
+                <div class="bg-purple-100 rounded-lg p-4">
+                    <div class="text-sm text-purple-700">
+                        <span x-text="selectedCount" class="font-semibold">0</span> partners selected
+                    </div>
+                    <div class="text-xs text-purple-600 mt-1">
+                        Max: {{ max_agents_per_download }} partners per package
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Selection Management -->
+        <div class="lg:col-span-2">
+            <!-- Current Selection -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Your Team Selection</h2>
+                    <button 
+                        onclick="clearAllSelections()"
+                        class="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                        Clear All
+                    </button>
+                </div>
+                
+                <div id="selection-list" 
+                     hx-get="/partials/selection-summary" 
+                     hx-trigger="load, selectionUpdated from:body"
+                     hx-vals='{"session_id": "{{ session_id if session_id else 'auto' }}"}'
+                     class="space-y-3 min-h-[200px]">
+                    <!-- Selection items will be loaded here -->
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-2">👥</div>
+                        <p class="text-sm">Loading your selections...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Popular Partners Suggestions -->
+            {% if popular_agents %}
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    ⭐ Popular Partners to Consider
+                </h2>
+                <p class="text-gray-600 mb-6">
+                    These partners are frequently downloaded together
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for agent in popular_agents %}
+                    <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900 mb-1">{{ agent.name }}</h3>
+                                <p class="text-sm text-gray-600 mb-2">
+                                    {{ agent.description[:80] }}{% if agent.description|length > 80 %}...{% endif %}
+                                </p>
+                                
+                                {% if agent.primary_classification %}
+                                <div class="flex gap-2 mb-2">
+                                    <span class="classification-badge lifecycle-{{ agent.primary_classification.lifecycle_phase }}">
+                                        {{ agent.primary_classification.lifecycle_phase.title() }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="text-xs text-gray-500">
+                                    {{ agent.repository.name if agent.repository else 'Unknown' }}
+                                </div>
+                            </div>
+                            
+                            <button 
+                                onclick="addToSelection({{ agent.id }})"
+                                class="ml-3 bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition-colors"
+                            >
+                                + Add
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <a href="/agents" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        Browse All Partners
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Download Options -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Package Options</h2>
+                
+                <!-- Package Type Selection -->
+                <div class="space-y-3 mb-6">
+                    <label class="block">
+                        <input type="radio" name="package_type" value="standard" checked class="sr-only">
+                        <div class="package-option border-2 border-gray-200 rounded-lg p-4 selected">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900">Standard Package</h3>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Individual agent files with README
+                                    </p>
+                                </div>
+                                <span class="text-2xl">📦</span>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="block">
+                        <input type="radio" name="package_type" value="integrated" class="sr-only">
+                        <div class="package-option border-2 border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900">Integrated Package</h3>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Combined workflow with examples
+                                    </p>
+                                </div>
+                                <span class="text-2xl">🎯</span>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="block">
+                        <input type="radio" name="package_type" value="development" class="sr-only">
+                        <div class="package-option border-2 border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900">Development Kit</h3>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Source files with customization guide
+                                    </p>
+                                </div>
+                                <span class="text-2xl">🛠️</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Package Customization -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label for="package_name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Package Name
+                        </label>
+                        <input 
+                            type="text" 
+                            id="package_name" 
+                            name="package_name"
+                            value="my_ai_team"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="my_ai_team"
+                        >
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="include_readme" 
+                            name="include_readme"
+                            checked
+                            class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        >
+                        <label for="include_readme" class="ml-2 text-sm text-gray-700">
+                            Include detailed README
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="include_examples" 
+                            name="include_examples"
+                            class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        >
+                        <label for="include_examples" class="ml-2 text-sm text-gray-700">
+                            Include usage examples
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="include_metadata" 
+                            name="include_metadata"
+                            checked
+                            class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        >
+                        <label for="include_metadata" class="ml-2 text-sm text-gray-700">
+                            Include package metadata
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Download Button -->
+                <button 
+                    id="download_btn"
+                    onclick="initiateDownload()"
+                    disabled
+                    class="w-full bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-not-allowed"
+                >
+                    Select Partners to Download
+                </button>
+                
+                <!-- Download Progress -->
+                <div id="download_progress" class="download-progress mt-4">
+                    <div class="bg-gray-200 rounded-full h-2 mb-2">
+                        <div id="progress_bar" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress_text" class="text-sm text-gray-600 text-center">Preparing your package...</p>
+                </div>
+                
+                <!-- Package Preview -->
+                <div id="package_preview" class="mt-6 hidden">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">Package Contents Preview</h3>
+                    <div class="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
+                        <div class="font-mono">
+                            📦 my_ai_team.zip<br>
+                            ├── agents/<br>
+                            │   ├── partner_1.md<br>
+                            │   └── partner_2.md<br>
+                            ├── README.md<br>
+                            └── package_metadata.json
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Download History -->
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Recent Downloads</h3>
+                    <div id="download_history" class="space-y-2 text-xs text-gray-500">
+                        <!-- Download history will be populated here -->
+                        <p>No recent downloads</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Complete Modal -->
+<div id="download_modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 m-4 max-w-md w-full">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">Download Complete!</h2>
+            <p class="text-gray-600 mb-6">
+                Your AI partner package has been prepared and downloaded successfully.
+            </p>
+            
+            <div class="space-y-3">
+                <button 
+                    onclick="closeDownloadModal()"
+                    class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                    Awesome!
+                </button>
+                <button 
+                    onclick="createNewPackage()"
+                    class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                    Create Another Package
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedAgents = new Set();
+let sessionId = getSessionId();
+
+// Package option selection
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'package_type') {
+        // Remove selected class from all options
+        document.querySelectorAll('.package-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Add selected class to chosen option
+        e.target.closest('label').querySelector('.package-option').classList.add('selected');
+        
+        updatePackagePreview();
+    }
+});
+
+// Update download button state
+function updateDownloadButton() {
+    const downloadBtn = document.getElementById('download_btn');
+    const count = selectedAgents.size;
+    
+    if (count > 0) {
+        downloadBtn.disabled = false;
+        downloadBtn.className = "w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors";
+        downloadBtn.textContent = `Download ${count} Partner${count > 1 ? 's' : ''}`;
+    } else {
+        downloadBtn.disabled = true;
+        downloadBtn.className = "w-full bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-not-allowed";
+        downloadBtn.textContent = "Select Partners to Download";
+    }
+    
+    // Update package preview
+    updatePackagePreview();
+}
+
+// Update package preview
+function updatePackagePreview() {
+    const preview = document.getElementById('package_preview');
+    const packageName = document.getElementById('package_name').value || 'my_ai_team';
+    const includeReadme = document.getElementById('include_readme').checked;
+    const includeExamples = document.getElementById('include_examples').checked;
+    const includeMetadata = document.getElementById('include_metadata').checked;
+    
+    if (selectedAgents.size > 0) {
+        let contents = `📦 ${packageName}.zip<br>├── agents/<br>`;
+        
+        // Add agent files (simulated)
+        for (let i = 1; i <= Math.min(selectedAgents.size, 3); i++) {
+            contents += `│   ├── partner_${i}.md<br>`;
+        }
+        
+        if (selectedAgents.size > 3) {
+            contents += `│   └── ... ${selectedAgents.size - 3} more files<br>`;
+        }
+        
+        if (includeReadme) contents += `├── README.md<br>`;
+        if (includeExamples) contents += `├── examples/<br>`;
+        if (includeMetadata) contents += `└── package_metadata.json`;
+        
+        preview.querySelector('.font-mono').innerHTML = contents;
+        preview.classList.remove('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+// Initiate download
+async function initiateDownload() {
+    if (selectedAgents.size === 0) return;
+    
+    const packageName = document.getElementById('package_name').value || 'my_ai_team';
+    const includeReadme = document.getElementById('include_readme').checked;
+    const packageType = document.querySelector('input[name="package_type"]:checked').value;
+    
+    // Show progress
+    showDownloadProgress();
+    
+    try {
+        const response = await fetch('/api/downloads/package/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                include_readme: includeReadme,
+                package_name: packageName
+            })
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            
+            // Update progress to 100%
+            updateProgress(100, 'Download complete!');
+            
+            // Trigger download
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${packageName}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            // Hide progress and show success modal
+            setTimeout(() => {
+                hideDownloadProgress();
+                showDownloadModal();
+                addToDownloadHistory(packageName, selectedAgents.size);
+            }, 1000);
+            
+        } else {
+            throw new Error('Download failed');
+        }
+        
+    } catch (error) {
+        console.error('Download failed:', error);
+        hideDownloadProgress();
+        alert('Download failed. Please try again.');
+    }
+}
+
+// Progress management
+function showDownloadProgress() {
+    document.getElementById('download_progress').classList.add('active');
+    updateProgress(0, 'Preparing your package...');
+    
+    // Simulate progress updates
+    setTimeout(() => updateProgress(30, 'Collecting agent files...'), 500);
+    setTimeout(() => updateProgress(60, 'Generating documentation...'), 1000);
+    setTimeout(() => updateProgress(90, 'Creating package...'), 1500);
+}
+
+function updateProgress(percent, text) {
+    document.getElementById('progress_bar').style.width = percent + '%';
+    document.getElementById('progress_text').textContent = text;
+}
+
+function hideDownloadProgress() {
+    document.getElementById('download_progress').classList.remove('active');
+}
+
+// Modal management
+function showDownloadModal() {
+    document.getElementById('download_modal').classList.remove('hidden');
+    document.getElementById('download_modal').classList.add('flex');
+}
+
+function closeDownloadModal() {
+    document.getElementById('download_modal').classList.add('hidden');
+    document.getElementById('download_modal').classList.remove('flex');
+}
+
+function createNewPackage() {
+    closeDownloadModal();
+    clearAllSelections();
+}
+
+// Download history
+function addToDownloadHistory(packageName, agentCount) {
+    const history = JSON.parse(localStorage.getItem('download_history') || '[]');
+    history.unshift({
+        name: packageName,
+        agentCount: agentCount,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Keep only last 5 downloads
+    history.splice(5);
+    localStorage.setItem('download_history', JSON.stringify(history));
+    
+    updateDownloadHistoryDisplay();
+}
+
+function updateDownloadHistoryDisplay() {
+    const history = JSON.parse(localStorage.getItem('download_history') || '[]');
+    const container = document.getElementById('download_history');
+    
+    if (history.length === 0) {
+        container.innerHTML = '<p>No recent downloads</p>';
+        return;
+    }
+    
+    container.innerHTML = history.map(item => `
+        <div class="flex justify-between items-center">
+            <span>${item.name}</span>
+            <span class="text-gray-400">${item.agentCount} agents</span>
+        </div>
+    `).join('');
+}
+
+function clearAllSelections() {
+    selectedAgents.clear();
+    
+    // Clear server-side selection
+    fetch('/api/downloads/selection/clear', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            session_id: sessionId
+        })
+    });
+    
+    // Trigger UI updates
+    updateDownloadButton();
+    htmx.trigger(document.body, 'selectionUpdated');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateDownloadHistoryDisplay();
+    updateDownloadButton();
+    
+    // Monitor selection changes
+    document.addEventListener('selectionUpdated', function() {
+        updateDownloadButton();
+    });
+});
+
+// Input change handlers
+document.getElementById('package_name').addEventListener('input', updatePackagePreview);
+document.getElementById('include_readme').addEventListener('change', updatePackagePreview);
+document.getElementById('include_examples').addEventListener('change', updatePackagePreview);
+document.getElementById('include_metadata').addEventListener('change', updatePackagePreview);
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Subagent Guild - Discover Claude Code Subagents{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    
+    <!-- Alpine.js for client-side interactivity -->
+    <script defer src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        /* Custom styles for the guild theme */
+        .guild-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .agent-card {
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .classification-badge {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+        
+        .lifecycle-concept { @apply bg-purple-100 text-purple-800; }
+        .lifecycle-design { @apply bg-blue-100 text-blue-800; }
+        .lifecycle-development { @apply bg-green-100 text-green-800; }
+        .lifecycle-testing { @apply bg-yellow-100 text-yellow-800; }
+        .lifecycle-deployment { @apply bg-orange-100 text-orange-800; }
+        .lifecycle-operations { @apply bg-red-100 text-red-800; }
+        .lifecycle-general { @apply bg-gray-100 text-gray-800; }
+        
+        .tech-tag {
+            @apply inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800;
+        }
+        
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="guild-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                            <span class="text-purple-600 font-bold text-lg">🏰</span>
+                        </div>
+                        <span class="text-white font-bold text-xl">Subagent Guild</span>
+                    </a>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <a href="/agents" class="text-white hover:text-purple-200 transition-colors">
+                        Explore Agents
+                    </a>
+                    <a href="/compare" class="text-white hover:text-purple-200 transition-colors">
+                        Compare
+                    </a>
+                    <a href="/download" class="text-white hover:text-purple-200 transition-colors">
+                        Download
+                    </a>
+                    <a href="/repositories" class="text-white hover:text-purple-200 transition-colors">
+                        Repositories
+                    </a>
+                    <a href="/about" class="text-white hover:text-purple-200 transition-colors">
+                        About
+                    </a>
+                    
+                    <!-- Selection Counter -->
+                    <div x-data="{ count: 0 }" class="relative">
+                        <button @click="toggleSelection()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                            <span>📦</span>
+                            <span x-text="count" class="font-medium">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <span class="text-2xl">🏰</span>
+                        <span class="text-xl font-bold">Subagent Guild</span>
+                    </div>
+                    <p class="text-gray-300 mb-4">
+                        Discover, evaluate, and manage Claude Code subagents from multiple public repositories.
+                        Find the perfect AI partners for your development projects.
+                    </p>
+                    <div class="flex space-x-4">
+                        <span class="text-sm text-gray-400">Built with FastAPI + HTMX</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-4">Explore</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="/agents" class="hover:text-white transition-colors">All Agents</a></li>
+                        <li><a href="/agents?lifecycle=development" class="hover:text-white transition-colors">Development</a></li>
+                        <li><a href="/agents?lifecycle=testing" class="hover:text-white transition-colors">Testing</a></li>
+                        <li><a href="/agents?lifecycle=operations" class="hover:text-white transition-colors">Operations</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-4">Resources</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
+                        <li><a href="/repositories" class="hover:text-white transition-colors">Repositories</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Docs</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
+                <p>&copy; 2024 Subagent Guild. Open source project for the Claude Code community.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- HTMX Configuration -->
+    <script>
+        // HTMX global configuration
+        htmx.config.globalViewTransitions = true;
+        
+        // Selection management
+        let selectedAgents = new Set();
+        
+        function addToSelection(agentId) {
+            selectedAgents.add(agentId);
+            updateSelectionCounter();
+            
+            // Make API call to add to server-side selection
+            fetch('/api/downloads/selection/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: getSessionId(),
+                    agent_id: agentId
+                })
+            });
+        }
+        
+        function removeFromSelection(agentId) {
+            selectedAgents.delete(agentId);
+            updateSelectionCounter();
+            
+            // Make API call to remove from server-side selection
+            fetch('/api/downloads/selection/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: getSessionId(),
+                    agent_id: agentId
+                })
+            });
+        }
+        
+        function updateSelectionCounter() {
+            // Update counter in Alpine.js
+            const counterElement = document.querySelector('[x-data]');
+            if (counterElement) {
+                counterElement._x_dataStack[0].count = selectedAgents.size;
+            }
+        }
+        
+        function getSessionId() {
+            // Generate or retrieve session ID
+            let sessionId = localStorage.getItem('subagent_guild_session');
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('subagent_guild_session', sessionId);
+            }
+            return sessionId;
+        }
+        
+        function toggleSelection() {
+            // Toggle selection panel
+            window.location.href = '/download';
+        }
+        
+        // Initialize selection counter on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load selection count from server
+            fetch(`/partials/selection-summary?session_id=${getSessionId()}`)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse selection count from response
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const countElement = doc.querySelector('[data-selection-count]');
+                    if (countElement) {
+                        const count = parseInt(countElement.dataset.selectionCount) || 0;
+                        selectedAgents = new Set(); // Reset and rebuild
+                        for (let i = 0; i < count; i++) {
+                            selectedAgents.add(`agent_${i}`); // Placeholder
+                        }
+                        updateSelectionCounter();
+                    }
+                });
+        });
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

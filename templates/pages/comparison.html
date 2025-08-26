@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Compare AI Partners - Subagent Guild{% endblock %}
+
+{% block extra_head %}
+<style>
+    .comparison-table {
+        display: grid;
+        grid-template-columns: 200px repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1px;
+        background-color: #e5e7eb;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .comparison-cell {
+        background-color: white;
+        padding: 1rem;
+        min-height: 60px;
+        display: flex;
+        align-items: flex-start;
+    }
+    
+    .comparison-header {
+        background-color: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .agent-column {
+        max-width: 300px;
+    }
+    
+    .comparison-differences {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .comparison-similarities {
+        background-color: #dcfce7;
+        border-left: 4px solid #16a34a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    🤝 Compare AI Partners
+                </h1>
+                <p class="mt-2 text-gray-600">
+                    Analyze compatibility and find the perfect team combination
+                </p>
+            </div>
+            
+            <div class="mt-6 lg:mt-0 flex space-x-4">
+                <button 
+                    onclick="clearComparison()"
+                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                    Clear All
+                </button>
+                <a href="/agents" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    Add More Partners
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% if compared_agents %}
+    <!-- Team Chemistry Analysis -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-8" id="team-analysis">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">🧪 Team Chemistry Analysis</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="chemistry-results">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="text-2xl">🔄</span>
+                </div>
+                <div class="text-sm text-gray-600">Analyzing compatibility...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="bg-white rounded-lg shadow-sm border overflow-hidden mb-8">
+        <div class="comparison-table">
+            <!-- Header Row -->
+            <div class="comparison-cell comparison-header">
+                <span>Attributes</span>
+            </div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell comparison-header agent-column">
+                <div class="w-full">
+                    <h3 class="font-semibold text-gray-900 mb-1">{{ agent.name }}</h3>
+                    <p class="text-xs text-gray-500">{{ agent.repository.name if agent.repository else 'Unknown' }}</p>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Name Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Partner Name</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                <a href="/agents/{{ agent.id }}" class="text-purple-600 hover:text-purple-700 font-medium">
+                    {{ agent.name }}
+                </a>
+            </div>
+            {% endfor %}
+            
+            <!-- Description Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Description</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                <p class="text-sm text-gray-700">{{ agent.description[:150] }}{% if agent.description|length > 150 %}...{% endif %}</p>
+            </div>
+            {% endfor %}
+            
+            <!-- Role Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Role Type</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                {% if agent.primary_classification %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ agent.primary_classification.role_type.replace('-', ' ').title() }}
+                </span>
+                {% else %}
+                <span class="text-gray-500 text-sm">Not classified</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <!-- Lifecycle Phase Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Lifecycle Phase</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                {% if agent.primary_classification %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium lifecycle-{{ agent.primary_classification.lifecycle_phase }}">
+                    {{ agent.primary_classification.lifecycle_phase.replace('-', ' ').title() }}
+                </span>
+                {% else %}
+                <span class="text-gray-500 text-sm">Not classified</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <!-- Tech Stack Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Technologies</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                <div class="flex flex-wrap gap-1">
+                    {% for tag in agent.tech_tags[:5] %}
+                    <span class="tech-tag">{{ tag }}</span>
+                    {% endfor %}
+                    {% if agent.tech_tags|length > 5 %}
+                    <span class="text-xs text-gray-500">+{{ agent.tech_tags|length - 5 }} more</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Repository Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Source Repository</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                {% if agent.repository %}
+                <div>
+                    <div class="font-medium text-sm">{{ agent.repository.name }}</div>
+                    {% if agent.repository.star_count %}
+                    <div class="text-xs text-gray-500 flex items-center mt-1">
+                        <span>⭐</span>
+                        <span class="ml-1">{{ agent.repository.star_count }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <span class="text-gray-500 text-sm">Unknown</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <!-- Confidence Score Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Classification Confidence</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                {% if agent.primary_classification %}
+                <div class="flex items-center">
+                    <div class="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ (agent.primary_classification.confidence_score * 100)|int }}%"></div>
+                    </div>
+                    <span class="text-sm text-gray-600">{{ (agent.primary_classification.confidence_score * 100)|int }}%</span>
+                </div>
+                {% else %}
+                <span class="text-gray-500 text-sm">N/A</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <!-- System Prompt Length Row -->
+            <div class="comparison-cell bg-gray-50 font-medium">Prompt Complexity</div>
+            {% for agent in compared_agents %}
+            <div class="comparison-cell agent-column">
+                {% set prompt_length = agent.system_prompt|length if agent.system_prompt else 0 %}
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700">{{ prompt_length }} chars</span>
+                    <span class="ml-2 text-xs text-gray-500">
+                        {% if prompt_length > 1000 %}
+                        (Detailed)
+                        {% elif prompt_length > 500 %}
+                        (Moderate)
+                        {% else %}
+                        (Simple)
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Compatibility Insights -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-8" id="compatibility-insights">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">💡 Compatibility Insights</h2>
+        <div id="insights-content">
+            <div class="text-center text-gray-500">
+                <div class="loading-spinner mx-auto mb-2"></div>
+                <p>Analyzing team compatibility...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-gray-50 rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="flex flex-wrap gap-4">
+            <button 
+                onclick="downloadComparedAgents()"
+                class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+                📦 Download This Team
+            </button>
+            <button 
+                onclick="findComplementaryAgents()"
+                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+                🔍 Find Missing Skills
+            </button>
+            <button 
+                onclick="saveComparison()"
+                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+                💾 Save Comparison
+            </button>
+            <a href="/agents" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                ➕ Add More Partners
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="text-6xl mb-6">🤝</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Start Comparing AI Partners</h2>
+        <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
+            Select agents from the exploration page to compare their capabilities, 
+            working styles, and compatibility for your projects.
+        </p>
+        
+        <div class="space-y-4 mb-8">
+            <div class="flex items-center justify-center space-x-8">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span class="text-xl">👁️</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Browse Partners</p>
+                </div>
+                <div class="text-gray-400">→</div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span class="text-xl">✓</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Select for Comparison</p>
+                </div>
+                <div class="text-gray-400">→</div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span class="text-xl">⚖️</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Analyze Compatibility</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/agents" class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                Explore AI Partners
+            </a>
+            <button 
+                onclick="loadSampleComparison()"
+                class="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+            >
+                See Sample Comparison
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Comparison management
+let comparedAgents = {{ compared_agents|tojson if compared_agents else '[]' }};
+
+async function loadTeamAnalysis() {
+    if (comparedAgents.length < 2) return;
+    
+    const agentIds = comparedAgents.map(agent => agent.id);
+    
+    try {
+        const response = await fetch('/api/agents/compare', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                agent_ids: agentIds
+            })
+        });
+        
+        const data = await response.json();
+        displayTeamAnalysis(data.comparison_insights);
+        displayCompatibilityInsights(data.comparison_insights);
+        
+    } catch (error) {
+        console.error('Failed to load team analysis:', error);
+    }
+}
+
+function displayTeamAnalysis(insights) {
+    const resultsContainer = document.getElementById('chemistry-results');
+    
+    resultsContainer.innerHTML = `
+        <div class="text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span class="text-2xl">🤝</span>
+            </div>
+            <div class="text-sm font-medium text-gray-900">${insights.shared_technologies.length} Shared Technologies</div>
+            <div class="text-xs text-gray-500 mt-1">${insights.shared_technologies.slice(0, 3).join(', ')}</div>
+        </div>
+        
+        <div class="text-center">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span class="text-2xl">⚖️</span>
+            </div>
+            <div class="text-sm font-medium text-gray-900">Team Balance</div>
+            <div class="text-xs text-gray-500 mt-1">${Object.keys(insights.complexity_levels).length} complexity levels</div>
+        </div>
+        
+        <div class="text-center">
+            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span class="text-2xl">💡</span>
+            </div>
+            <div class="text-sm font-medium text-gray-900">${insights.recommendations.length} Insights</div>
+            <div class="text-xs text-gray-500 mt-1">Team recommendations</div>
+        </div>
+    `;
+}
+
+function displayCompatibilityInsights(insights) {
+    const insightsContainer = document.getElementById('insights-content');
+    
+    let insightsHtml = '';
+    
+    // Shared technologies
+    if (insights.shared_technologies.length > 0) {
+        insightsHtml += `
+            <div class="comparison-similarities p-4 rounded-lg mb-4">
+                <h3 class="font-medium text-green-800 mb-2">🤝 Shared Technologies</h3>
+                <p class="text-sm text-green-700">
+                    These partners share ${insights.shared_technologies.length} technologies: 
+                    <strong>${insights.shared_technologies.join(', ')}</strong>
+                </p>
+            </div>
+        `;
+    }
+    
+    // Unique technologies
+    const hasUniquetech = Object.values(insights.unique_technologies).some(tech => tech.length > 0);
+    if (hasUniquetech) {
+        insightsHtml += `
+            <div class="comparison-differences p-4 rounded-lg mb-4">
+                <h3 class="font-medium text-yellow-800 mb-2">⚡ Unique Specializations</h3>
+                <div class="text-sm text-yellow-700">
+        `;
+        
+        for (const [agentId, uniqueTech] of Object.entries(insights.unique_technologies)) {
+            if (uniqueTech.length > 0) {
+                const agent = comparedAgents.find(a => a.id == agentId);
+                insightsHtml += `
+                    <p class="mb-1">
+                        <strong>${agent ? agent.name : 'Agent'}</strong> brings unique expertise in: 
+                        ${uniqueTech.join(', ')}
+                    </p>
+                `;
+            }
+        }
+        
+        insightsHtml += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // Recommendations
+    if (insights.recommendations.length > 0) {
+        insightsHtml += `
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+                <h3 class="font-medium text-blue-800 mb-2">💡 Team Recommendations</h3>
+                <ul class="text-sm text-blue-700 space-y-1">
+        `;
+        
+        insights.recommendations.forEach(rec => {
+            insightsHtml += `<li>• ${rec}</li>`;
+        });
+        
+        insightsHtml += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    insightsContainer.innerHTML = insightsHtml || '<p class="text-gray-500">No specific insights available for this combination.</p>';
+}
+
+async function downloadComparedAgents() {
+    if (comparedAgents.length === 0) return;
+    
+    const agentIds = comparedAgents.map(agent => agent.id);
+    
+    try {
+        const response = await fetch('/api/downloads/package/bulk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                agent_ids: agentIds,
+                include_readme: true,
+                package_name: 'compared_agents_team'
+            })
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'compared_agents_team.zip';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    } catch (error) {
+        console.error('Download failed:', error);
+    }
+}
+
+async function findComplementaryAgents() {
+    if (comparedAgents.length === 0) return;
+    
+    const agentIds = comparedAgents.map(agent => agent.id);
+    
+    try {
+        const response = await fetch('/api/agents/complementary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(agentIds)
+        });
+        
+        const data = await response.json();
+        
+        if (data.complementary_agents.length > 0) {
+            // Show complementary agents in a modal or redirect
+            const agentList = data.complementary_agents.map(agent => agent.name).join(', ');
+            alert(`Consider adding these complementary partners: ${agentList}`);
+        } else {
+            alert('Your current team covers all major areas well!');
+        }
+    } catch (error) {
+        console.error('Failed to find complementary agents:', error);
+    }
+}
+
+function saveComparison() {
+    // Save to localStorage for now (could be enhanced with server-side storage)
+    const comparisonData = {
+        agents: comparedAgents,
+        timestamp: new Date().toISOString(),
+        name: `Comparison_${new Date().toLocaleDateString()}`
+    };
+    
+    localStorage.setItem('saved_comparison', JSON.stringify(comparisonData));
+    alert('Comparison saved successfully!');
+}
+
+function clearComparison() {
+    if (confirm('Are you sure you want to clear this comparison?')) {
+        localStorage.removeItem('comparison_list');
+        window.location.href = '/compare';
+    }
+}
+
+function loadSampleComparison() {
+    // Load a sample comparison for demonstration
+    window.location.href = '/compare?agent_ids=1,2,3';
+}
+
+// Initialize team analysis if agents are present
+if (comparedAgents.length >= 2) {
+    loadTeamAnalysis();
+}
+</script>
+{% endblock %}

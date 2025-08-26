@@ -1,0 +1,255 @@
+<!-- Agent Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {% for agent in agents %}
+    <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow agent-card">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                        <a href="/agents/{{ agent.id }}" class="hover:text-purple-600 transition-colors">
+                            {{ agent.name }}
+                        </a>
+                    </h3>
+                    <p class="text-gray-600 text-sm mb-3 line-clamp-3">
+                        {{ agent.description }}
+                    </p>
+                </div>
+                
+                <!-- Selection Checkbox -->
+                <div class="ml-4">
+                    <input 
+                        type="checkbox" 
+                        id="select-{{ agent.id }}"
+                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        onchange="toggleAgentSelection({{ agent.id }}, this.checked)"
+                    >
+                </div>
+            </div>
+            
+            <!-- Classifications -->
+            {% if agent.primary_classification %}
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="classification-badge lifecycle-{{ agent.primary_classification.lifecycle_phase }}">
+                    <span class="mr-1">
+                        {% if agent.primary_classification.lifecycle_phase == "concept" %}💡
+                        {% elif agent.primary_classification.lifecycle_phase == "design" %}🏗️
+                        {% elif agent.primary_classification.lifecycle_phase == "development" %}💻
+                        {% elif agent.primary_classification.lifecycle_phase == "testing" %}🧪
+                        {% elif agent.primary_classification.lifecycle_phase == "deployment" %}🚀
+                        {% elif agent.primary_classification.lifecycle_phase == "operations" %}⚙️
+                        {% else %}🔧
+                        {% endif %}
+                    </span>
+                    {{ agent.primary_classification.lifecycle_phase.replace('-', ' ').title() }}
+                </span>
+                
+                <span class="classification-badge bg-blue-100 text-blue-800">
+                    <span class="mr-1">
+                        {% if agent.primary_classification.role_type == "system-architect" %}🏛️
+                        {% elif agent.primary_classification.role_type == "backend-developer" %}⚙️
+                        {% elif agent.primary_classification.role_type == "frontend-developer" %}🎨
+                        {% elif agent.primary_classification.role_type == "performance-engineer" %}⚡
+                        {% elif agent.primary_classification.role_type == "qa-tester" %}🔍
+                        {% elif agent.primary_classification.role_type == "devops-engineer" %}🔧
+                        {% else %}👨‍💻
+                        {% endif %}
+                    </span>
+                    {{ agent.primary_classification.role_type.replace('-', ' ').title() }}
+                </span>
+                
+                <!-- Confidence indicator -->
+                {% if agent.primary_classification.confidence_score >= 0.8 %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    ✓ High Confidence
+                </span>
+                {% elif agent.primary_classification.confidence_score >= 0.6 %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                    ~ Medium Confidence
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Tech Stack -->
+            {% if agent.tech_tags %}
+            <div class="mb-4">
+                <div class="flex flex-wrap gap-1">
+                    {% for tag in agent.tech_tags[:4] %}
+                    <span class="tech-tag">{{ tag }}</span>
+                    {% endfor %}
+                    {% if agent.tech_tags|length > 4 %}
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                        +{{ agent.tech_tags|length - 4 }} more
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Repository Info -->
+            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <div class="flex items-center space-x-2">
+                    <span>🏰</span>
+                    <span>{{ agent.repository.name if agent.repository else 'Unknown Hall' }}</span>
+                    {% if agent.repository and agent.repository.star_count %}
+                    <span class="flex items-center space-x-1">
+                        <span>⭐</span>
+                        <span>{{ agent.repository.star_count }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Partner Quality Indicators -->
+                <div class="flex items-center space-x-2">
+                    {% if agent.yaml_metadata and agent.yaml_metadata.get('tested') %}
+                    <span class="text-green-600" title="Tested Partner">✅</span>
+                    {% endif %}
+                    {% if agent.system_prompt and agent.system_prompt|length > 500 %}
+                    <span class="text-blue-600" title="Detailed Instructions">📋</span>
+                    {% endif %}
+                    {% if agent.yaml_metadata and agent.yaml_metadata.get('examples') %}
+                    <span class="text-purple-600" title="Has Examples">📚</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex gap-2">
+                <a href="/agents/{{ agent.id }}" class="flex-1 bg-purple-600 text-white text-center py-2 px-4 rounded hover:bg-purple-700 transition-colors text-sm font-medium">
+                    Meet Partner
+                </a>
+                <button 
+                    onclick="addToSelection({{ agent.id }})"
+                    class="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-colors text-sm font-medium"
+                    title="Add to selection"
+                >
+                    + Team
+                </button>
+                <button 
+                    onclick="addToComparison({{ agent.id }})"
+                    class="bg-blue-200 text-blue-700 py-2 px-4 rounded hover:bg-blue-300 transition-colors text-sm font-medium"
+                    title="Add to comparison"
+                >
+                    Compare
+                </button>
+            </div>
+            
+            <!-- Quick Preview on Hover -->
+            <div class="mt-3 pt-3 border-t border-gray-100 hidden" id="preview-{{ agent.id }}">
+                <div class="text-xs text-gray-600">
+                    <strong>Working Style:</strong> 
+                    {% if agent.primary_classification %}
+                        {% if agent.primary_classification.role_type == "system-architect" %}
+                        Methodical and strategic, focuses on scalable architecture
+                        {% elif agent.primary_classification.role_type == "performance-engineer" %}
+                        Detail-oriented, optimizes for speed and efficiency
+                        {% elif agent.primary_classification.role_type == "backend-developer" %}
+                        Logical and systematic, builds robust server-side solutions
+                        {% else %}
+                        Collaborative and adaptable, follows best practices
+                        {% endif %}
+                    {% else %}
+                    Versatile and helpful across various development tasks
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Empty State -->
+{% if not agents %}
+<div class="text-center py-12">
+    <div class="text-6xl mb-4">🔍</div>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No partners found</h3>
+    <p class="text-gray-600 mb-6">
+        Try adjusting your filters or search terms to find the perfect AI partners.
+    </p>
+    <a href="/agents" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+        View All Partners
+    </a>
+</div>
+{% endif %}
+
+<!-- Load More Button (if there are more results) -->
+{% if has_next %}
+<div class="text-center mt-8">
+    <button 
+        class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+        hx-get="/partials/agent-cards?page={{ page + 1 }}"
+        hx-target="#agent-results"
+        hx-swap="beforeend"
+        hx-include="[name='search'], [name='lifecycle'], [name='role'], [name='tech_stack'], [name='repository_id'], [name='sort']"
+    >
+        Load More Partners
+    </button>
+</div>
+{% endif %}
+
+<script>
+function toggleAgentSelection(agentId, isSelected) {
+    if (isSelected) {
+        addToSelection(agentId);
+    } else {
+        removeFromSelection(agentId);
+    }
+}
+
+function addToComparison(agentId) {
+    // Add to comparison list
+    let comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+    if (!comparisonList.includes(agentId) && comparisonList.length < 10) {
+        comparisonList.push(agentId);
+        localStorage.setItem('comparison_list', JSON.stringify(comparisonList));
+        
+        // Show confirmation
+        showNotification(`Partner added to comparison (${comparisonList.length}/10)`);
+        
+        // Update comparison button if exists
+        updateComparisonButton();
+    }
+}
+
+function showNotification(message) {
+    // Simple notification system
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function updateComparisonButton() {
+    const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+    const button = document.querySelector('[data-comparison-count]');
+    if (button) {
+        button.textContent = `Compare (${comparisonList.length})`;
+    }
+}
+
+// Show preview on hover
+document.addEventListener('mouseenter', function(e) {
+    if (e.target.closest('.agent-card')) {
+        const card = e.target.closest('.agent-card');
+        const preview = card.querySelector('[id^="preview-"]');
+        if (preview) {
+            preview.classList.remove('hidden');
+        }
+    }
+}, true);
+
+document.addEventListener('mouseleave', function(e) {
+    if (e.target.closest('.agent-card')) {
+        const card = e.target.closest('.agent-card');
+        const preview = card.querySelector('[id^="preview-"]');
+        if (preview) {
+            preview.classList.add('hidden');
+        }
+    }
+}, true);
+</script>
