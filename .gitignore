@@ -1,3 +1,6 @@
+# Subagent Guild - .gitignore
+# Project structure organized: management/, docs/, app/, config/, templates/, etc.
+
 # Python cache files
 __pycache__/
 *.py[cod]
