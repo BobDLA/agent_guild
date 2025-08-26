@@ -32,18 +32,10 @@
         {% endfor %}
         
         <div class="pt-3 border-t border-gray-200">
-            <div class="flex gap-2">
-                <a href="/compare?agent_ids={{ selected_agents|map(attribute='id')|join(',') }}" 
-                   class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
-                    Compare All
-                </a>
-                <button 
-                    onclick="downloadSelection()"
-                    class="flex-1 bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition-colors"
-                >
-                    Download
-                </button>
-            </div>
+            <a href="/compare?agent_ids={{ selected_agents|map(attribute='id')|join(',') }}" 
+               class="w-full bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors block">
+                Compare All
+            </a>
         </div>
     </div>
     {% else %}
@@ -59,22 +51,15 @@
 
 <script>
 function clearSelection() {
-    fetch('/api/downloads/selection/clear', {
+    fetch(`/api/downloads/selection/clear?session_id=${getSessionId()}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            session_id: getSessionId()
-        })
+        }
     }).then(() => {
         // Reload selection summary
         htmx.trigger('#selection-summary', 'reload');
         updateSelectionCounter();
     });
-}
-
-function downloadSelection() {
-    window.location.href = '/download';
 }
 </script>

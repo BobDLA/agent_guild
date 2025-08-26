@@ -23,11 +23,70 @@
         
         .agent-card {
             transition: all 0.3s ease;
+            overflow: visible; /* Allow tooltips to show */
+            position: relative;
         }
         
         .agent-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        /* Button states */
+        .team-btn.selected {
+            @apply bg-green-500 text-white;
+        }
+        
+        .compare-btn.selected {
+            @apply bg-blue-500 text-white;
+        }
+        
+        /* Text truncation with proper line height */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        
+        /* Responsive card improvements */
+        .agent-card {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .agent-card > div {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        /* Prevent text overflow in small screens */
+        @media (max-width: 640px) {
+            .agent-card {
+                min-height: auto;
+            }
+            
+            .agent-card .flex-wrap {
+                flex-direction: column;
+            }
+            
+            .agent-card .flex-wrap > * {
+                flex: 1;
+                min-width: 100%;
+            }
+        }
+        
+        /* Notification animations */
+        .notification-enter {
+            transform: translateX(100%);
+        }
+        
+        .notification-enter-active {
+            transform: translateX(0);
+            transition: transform 0.3s ease-out;
         }
         
         .classification-badge {
@@ -81,12 +140,11 @@
                     <a href="/agents" class="text-white hover:text-purple-200 transition-colors">
                         Explore Agents
                     </a>
-                    <a href="/compare" class="text-white hover:text-purple-200 transition-colors">
-                        Compare
+                    <a href="/compare" class="text-white hover:text-purple-200 transition-colors flex items-center space-x-1">
+                        <span>Compare</span>
+                        <span id="comparison-counter" class="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-medium hidden">0</span>
                     </a>
-                    <a href="/download" class="text-white hover:text-purple-200 transition-colors">
-                        Download
-                    </a>
+
                     <a href="/repositories" class="text-white hover:text-purple-200 transition-colors">
                         Repositories
                     </a>
@@ -110,6 +168,48 @@
     <main class="flex-1">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Agent Preview Slide-out Panel -->
+    <div id="agent-preview-panel" class="fixed inset-y-0 right-0 w-full sm:w-[600px] lg:w-[750px] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 hidden">
+        <div class="flex flex-col h-full">
+            <!-- Panel Header -->
+            <div class="flex items-center justify-between p-4 border-b bg-purple-600 text-white">
+                <h2 class="text-lg font-semibold">Agent Preview</h2>
+                <button onclick="closeAgentPreview()" class="text-white hover:text-purple-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Panel Content -->
+            <div id="agent-preview-content" class="flex-1 overflow-y-auto p-4">
+                <!-- Loading state -->
+                <div class="flex items-center justify-center h-full">
+                    <div class="loading-spinner"></div>
+                    <span class="ml-2 text-gray-600">Loading agent details...</span>
+                </div>
+            </div>
+            
+            <!-- Panel Footer -->
+            <div class="border-t p-4 bg-gray-50">
+                <div class="flex gap-2">
+                    <button id="panel-view-full" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors">
+                        View Full Details
+                    </button>
+                    <button id="panel-add-team" class="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-colors">
+                        + Team
+                    </button>
+                    <button id="panel-compare" class="bg-blue-200 text-blue-700 py-2 px-4 rounded hover:bg-blue-300 transition-colors">
+                        Compare
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlay for slide-out panel -->
+    <div id="agent-preview-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="closeAgentPreview()"></div>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white mt-16">
@@ -216,6 +316,214 @@
             return sessionId;
         }
         
+        // Comparison management functions
+        function updateComparisonCounter() {
+            const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+            const counter = document.getElementById('comparison-counter');
+            if (counter) {
+                if (comparisonList.length > 0) {
+                    counter.textContent = comparisonList.length;
+                    counter.classList.remove('hidden');
+                } else {
+                    counter.classList.add('hidden');
+                }
+            }
+        }
+        
+        function addToComparison(agentId) {
+            let comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+            if (!comparisonList.includes(agentId) && comparisonList.length < 10) {
+                comparisonList.push(agentId);
+                localStorage.setItem('comparison_list', JSON.stringify(comparisonList));
+                updateComparisonCounter();
+                showNotification(`Agent added to comparison (${comparisonList.length}/10)`);
+            } else if (comparisonList.length >= 10) {
+                showNotification('Maximum 10 agents can be compared at once');
+            } else {
+                showNotification('Agent already in comparison list');
+            }
+        }
+        
+        function showNotification(message) {
+            // Simple notification system
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Make functions globally available
+        window.addToComparison = addToComparison;
+        window.updateComparisonCounter = updateComparisonCounter;
+        window.showNotification = showNotification;
+        
+        // Agent preview panel functions
+        let currentPreviewAgentId = null;
+        
+        function openAgentPreview(agentId) {
+            currentPreviewAgentId = agentId;
+            const panel = document.getElementById('agent-preview-panel');
+            const overlay = document.getElementById('agent-preview-overlay');
+            const content = document.getElementById('agent-preview-content');
+            
+            // Show loading state
+            content.innerHTML = `
+                <div class="flex items-center justify-center h-full">
+                    <div class="loading-spinner"></div>
+                    <span class="ml-2 text-gray-600">Loading agent details...</span>
+                </div>
+            `;
+            
+            // Show panel and overlay
+            panel.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            
+            // Trigger slide-in animation
+            setTimeout(() => {
+                panel.classList.remove('translate-x-full');
+            }, 10);
+            
+            // Load agent content
+            fetch(`/api/agents/${agentId}`)
+                .then(response => response.json())
+                .then(agent => {
+                    renderAgentPreview(agent);
+                })
+                .catch(error => {
+                    console.error('Error loading agent:', error);
+                    content.innerHTML = `
+                        <div class="text-center text-red-600 p-8">
+                            <p>Error loading agent details.</p>
+                            <button onclick="closeAgentPreview()" class="mt-4 bg-gray-200 text-gray-700 px-4 py-2 rounded">Close</button>
+                        </div>
+                    `;
+                });
+        }
+        
+        function closeAgentPreview() {
+            const panel = document.getElementById('agent-preview-panel');
+            const overlay = document.getElementById('agent-preview-overlay');
+            
+            // Trigger slide-out animation
+            panel.classList.add('translate-x-full');
+            
+            // Hide after animation
+            setTimeout(() => {
+                panel.classList.add('hidden');
+                overlay.classList.add('hidden');
+                currentPreviewAgentId = null;
+            }, 300);
+        }
+        
+        function renderAgentPreview(agent) {
+            const content = document.getElementById('agent-preview-content');
+            const viewFullBtn = document.getElementById('panel-view-full');
+            const addTeamBtn = document.getElementById('panel-add-team');
+            const compareBtn = document.getElementById('panel-compare');
+            
+            // Update footer buttons
+            viewFullBtn.onclick = () => {
+                closeAgentPreview();
+                window.location.href = `/agents/${agent.id}`;
+            };
+            
+            addTeamBtn.onclick = () => {
+                const mainButton = document.getElementById(`team-btn-${agent.id}`);
+                if (mainButton) {
+                    toggleTeamSelection(agent.id, mainButton);
+                }
+            };
+            
+            compareBtn.onclick = () => {
+                const mainButton = document.getElementById(`compare-btn-${agent.id}`);
+                if (mainButton) {
+                    toggleComparison(agent.id, mainButton);
+                }
+            };
+            
+            // Render content
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Agent Header -->
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">${agent.name}</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">${agent.description}</p>
+                    </div>
+                    
+                    <!-- Classifications -->
+                    ${agent.classifications && agent.classifications.length > 0 ? `
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Role & Phase</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${agent.classifications.map(c => `
+                                    <span class="classification-badge lifecycle-${c.lifecycle_phase}">
+                                        ${c.lifecycle_phase.replace('-', ' ')}
+                                    </span>
+                                    <span class="classification-badge bg-blue-100 text-blue-800">
+                                        ${c.role_type.replace('-', ' ')}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Tech Stack -->
+                    ${agent.tech_stack && agent.tech_stack.length > 0 ? `
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Technologies</h4>
+                            <div class="flex flex-wrap gap-1">
+                                ${agent.tech_stack.map(tech => `
+                                    <span class="tech-tag">${tech}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Repository Info -->
+                    ${agent.repository ? `
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Repository</h4>
+                            <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                <span>🏰</span>
+                                <span>${agent.repository.name}</span>
+                                ${agent.repository.star_count ? `
+                                    <span class="flex items-center space-x-1">
+                                        <span>⭐</span>
+                                        <span>${agent.repository.star_count}</span>
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- System Prompt Preview -->
+                    ${agent.system_prompt ? `
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Instructions Preview</h4>
+                            <div class="bg-gray-50 rounded p-4 text-sm text-gray-700 min-h-[400px] border border-gray-200">
+                                <div class="leading-relaxed whitespace-pre-wrap">${agent.system_prompt}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Make panel functions globally available
+        window.openAgentPreview = openAgentPreview;
+        window.closeAgentPreview = closeAgentPreview;
+        
+        // Keyboard support for panel
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && currentPreviewAgentId) {
+                closeAgentPreview();
+            }
+        });
+        
         function toggleSelection() {
             // Toggle selection panel
             window.location.href = '/download';
@@ -223,22 +531,42 @@
         
         // Initialize selection counter on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Load selection count from server
-            fetch(`/partials/selection-summary?session_id=${getSessionId()}`)
-                .then(response => response.text())
-                .then(html => {
-                    // Parse selection count from response
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const countElement = doc.querySelector('[data-selection-count]');
-                    if (countElement) {
-                        const count = parseInt(countElement.dataset.selectionCount) || 0;
-                        selectedAgents = new Set(); // Reset and rebuild
-                        for (let i = 0; i < count; i++) {
-                            selectedAgents.add(`agent_${i}`); // Placeholder
-                        }
-                        updateSelectionCounter();
-                    }
+            // Initialize comparison counter
+            updateComparisonCounter();
+            
+            // Load selection count from server API
+            fetch(`/api/downloads/selection/${getSessionId()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear and rebuild client-side selection
+                    selectedAgents.clear();
+                    
+                    // Add all server-side selections to client-side set
+                    data.selected_agents.forEach(agent => {
+                        selectedAgents.add(agent.id);
+                    });
+                    
+                    // Update UI
+                    updateSelectionCounter();
+                })
+                .catch(error => {
+                    console.error('Failed to load selection state:', error);
+                    // Fallback to partial method
+                    fetch(`/partials/selection-summary?session_id=${getSessionId()}`)
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const countElement = doc.querySelector('[data-selection-count]');
+                            if (countElement) {
+                                const count = parseInt(countElement.dataset.selectionCount) || 0;
+                                selectedAgents = new Set();
+                                for (let i = 0; i < count; i++) {
+                                    selectedAgents.add(`agent_${i}`);
+                                }
+                                updateSelectionCounter();
+                            }
+                        });
                 });
         });
     </script>

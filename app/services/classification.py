@@ -185,62 +185,55 @@ Analyze the following agent and classify it according to these dimensions:
 """
     
     async def _call_claude_api(self, prompt: str) -> str:
-        """Call Claude API for classification"""
-        if not self.claude_api_key:
-            # Fallback to mock classification for development
-            return self._mock_claude_response()
-        
+        """Call Claude CLI for classification"""
         try:
-            # Note: Replace with actual Claude SDK when available
-            # client = AsyncAnthropic(api_key=self.claude_api_key)
-            # response = await client.messages.create(
-            #     model=self.claude_model,
-            #     max_tokens=1000,
-            #     messages=[{"role": "user", "content": prompt}]
-            # )
-            # return response.content[0].text
+            # Use local Claude CLI instead of API
+            import subprocess
+            import asyncio
             
-            # Temporary HTTP client implementation
-            async with httpx.AsyncClient() as client:
-                headers = {
-                    "Authorization": f"Bearer {self.claude_api_key}",
-                    "Content-Type": "application/json"
-                }
-                
-                data = {
-                    "model": self.claude_model,
-                    "max_tokens": 1000,
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-                
-                # Note: Replace with actual Claude API endpoint
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers=headers,
-                    json=data
-                )
-                
-                if response.status_code == 200:
-                    return response.json()["content"][0]["text"]
-                else:
-                    raise Exception(f"Claude API error: {response.status_code}")
+            # Create the classification prompt
+            classification_prompt = (
+                "You are an expert in software development and AI agent classification. "
+                "Respond ONLY with valid JSON in the exact format requested. "
+                "Do not include any other text or explanations."
+            )
+            
+            # Run claude CLI command asynchronously
+            process = await asyncio.create_subprocess_exec(
+                'claude', '-p', classification_prompt,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate(input=prompt.encode('utf-8'))
+            
+            if process.returncode == 0:
+                response = stdout.decode('utf-8').strip()
+                print(f"Claude CLI response: {response[:200]}...")
+                return response
+            else:
+                error_msg = stderr.decode('utf-8') if stderr else "Unknown error"
+                print(f"Claude CLI error (code {process.returncode}): {error_msg}")
+                # Fallback to mock response
+                return self._mock_claude_response()
         
         except Exception as e:
-            print(f"Claude API call failed: {str(e)}")
+            print(f"Claude CLI call failed: {str(e)}")
             # Fallback to mock response
             return self._mock_claude_response()
     
     def _mock_claude_response(self) -> str:
-        """Mock Claude response for development/testing"""
+        """Mock Claude response for development/testing when CLI fails"""
         return json.dumps({
             "lifecycle_phase": "development",
-            "role_type": "general",
-            "confidence_score": 0.5,
+            "role_type": "backend-developer", 
+            "confidence_score": 0.4,
             "tech_stack": [
                 {"tag": "General", "category": "general"}
             ],
-            "reasoning": "Mock classification for development",
-            "keywords_found": ["mock", "development"]
+            "reasoning": "Mock fallback classification when Claude CLI unavailable",
+            "keywords_found": ["mock", "fallback"]
         })
     
     def _parse_classification_response(self, response: str, agent: Agent) -> ClassificationResult:

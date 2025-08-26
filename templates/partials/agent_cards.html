@@ -1,29 +1,25 @@
 <!-- Agent Cards Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     {% for agent in agents %}
-    <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow agent-card">
-        <div class="p-6">
+    <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow agent-card flex flex-col">
+        <div class="p-4 sm:p-6 flex-1 flex flex-col">
             <!-- Header -->
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                        <a href="/agents/{{ agent.id }}" class="hover:text-purple-600 transition-colors">
-                            {{ agent.name }}
-                        </a>
-                    </h3>
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    <a href="/agents/{{ agent.id }}" class="hover:text-purple-600 transition-colors">
+                        {{ agent.name }}
+                    </a>
+                </h3>
+                <div class="relative group">
                     <p class="text-gray-600 text-sm mb-3 line-clamp-3">
                         {{ agent.description }}
                     </p>
-                </div>
-                
-                <!-- Selection Checkbox -->
-                <div class="ml-4">
-                    <input 
-                        type="checkbox" 
-                        id="select-{{ agent.id }}"
-                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        onchange="toggleAgentSelection({{ agent.id }}, this.checked)"
-                    >
+                    <!-- Full description tooltip -->
+                    {% if agent.description|length > 150 %}
+                    <div class="absolute left-0 top-full mt-2 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-10 max-w-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        {{ agent.description }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
@@ -57,31 +53,29 @@
                     </span>
                     {{ agent.primary_classification.role_type.replace('-', ' ').title() }}
                 </span>
-                
-                <!-- Confidence indicator -->
-                {% if agent.primary_classification.confidence_score >= 0.8 %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                    ✓ High Confidence
-                </span>
-                {% elif agent.primary_classification.confidence_score >= 0.6 %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                    ~ Medium Confidence
-                </span>
-                {% endif %}
             </div>
             {% endif %}
             
             <!-- Tech Stack -->
             {% if agent.tech_tags %}
-            <div class="mb-4">
+            <div class="mb-4 relative group">
                 <div class="flex flex-wrap gap-1">
-                    {% for tag in agent.tech_tags[:4] %}
+                    {% for tag in agent.tech_tags[:6] %}
                     <span class="tech-tag">{{ tag }}</span>
                     {% endfor %}
-                    {% if agent.tech_tags|length > 4 %}
-                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                        +{{ agent.tech_tags|length - 4 }} more
+                    {% if agent.tech_tags|length > 6 %}
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 cursor-help">
+                        +{{ agent.tech_tags|length - 6 }} more
                     </span>
+                    <!-- Full tech stack tooltip -->
+                    <div class="absolute left-0 top-full mt-2 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-20 max-w-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <div class="font-medium mb-2">All Technologies:</div>
+                        <div class="flex flex-wrap gap-1">
+                            {% for tag in agent.tech_tags %}
+                            <span class="bg-gray-700 text-gray-200 px-2 py-1 rounded text-xs">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -89,11 +83,11 @@
             
             <!-- Repository Info -->
             <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <div class="flex items-center space-x-2">
-                    <span>🏰</span>
-                    <span>{{ agent.repository.name if agent.repository else 'Unknown Hall' }}</span>
+                <div class="flex items-center space-x-2 min-w-0 flex-1">
+                    <span class="flex-shrink-0">🏰</span>
+                    <span class="truncate">{{ agent.repository.name if agent.repository else 'Unknown Hall' }}</span>
                     {% if agent.repository and agent.repository.star_count %}
-                    <span class="flex items-center space-x-1">
+                    <span class="flex items-center space-x-1 flex-shrink-0">
                         <span>⭐</span>
                         <span>{{ agent.repository.star_count }}</span>
                     </span>
@@ -101,59 +95,67 @@
                 </div>
                 
                 <!-- Partner Quality Indicators -->
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2 flex-shrink-0">
                     {% if agent.yaml_metadata and agent.yaml_metadata.get('tested') %}
-                    <span class="text-green-600" title="Tested Partner">✅</span>
-                    {% endif %}
-                    {% if agent.system_prompt and agent.system_prompt|length > 500 %}
-                    <span class="text-blue-600" title="Detailed Instructions">📋</span>
+                    <div class="flex items-center space-x-1 text-green-600" title="Tested Partner">
+                        <span class="text-sm">✅</span>
+                        <span class="text-xs hidden sm:inline">Tested</span>
+                    </div>
                     {% endif %}
                     {% if agent.yaml_metadata and agent.yaml_metadata.get('examples') %}
-                    <span class="text-purple-600" title="Has Examples">📚</span>
+                    <div class="flex items-center space-x-1 text-purple-600" title="Has Examples">
+                        <span class="text-sm">📚</span>
+                        <span class="text-xs hidden sm:inline">Examples</span>
+                    </div>
                     {% endif %}
                 </div>
             </div>
             
             <!-- Actions -->
-            <div class="flex gap-2">
-                <a href="/agents/{{ agent.id }}" class="flex-1 bg-purple-600 text-white text-center py-2 px-4 rounded hover:bg-purple-700 transition-colors text-sm font-medium">
-                    Meet Partner
-                </a>
+            <div class="flex gap-2 flex-wrap mt-auto pt-2">
                 <button 
-                    onclick="addToSelection({{ agent.id }})"
-                    class="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-colors text-sm font-medium"
-                    title="Add to selection"
+                    onclick="openAgentPreview({{ agent.id }})"
+                    class="flex-1 min-w-[120px] bg-purple-600 text-white text-center py-2 px-3 rounded hover:bg-purple-700 transition-colors text-sm font-medium"
+                >
+                    Meet Partner
+                </button>
+                <button 
+                    id="team-btn-{{ agent.id }}"
+                    onclick="toggleTeamSelection({{ agent.id }}, this)"
+                    class="team-btn bg-gray-200 text-gray-700 py-2 px-3 rounded hover:bg-gray-300 transition-all duration-200 text-sm font-medium min-w-[70px] flex-shrink-0"
+                    title="Add to team selection"
                 >
                     + Team
                 </button>
                 <button 
-                    onclick="addToComparison({{ agent.id }})"
-                    class="bg-blue-200 text-blue-700 py-2 px-4 rounded hover:bg-blue-300 transition-colors text-sm font-medium"
+                    id="compare-btn-{{ agent.id }}"
+                    onclick="toggleComparison({{ agent.id }}, this)"
+                    class="compare-btn bg-blue-200 text-blue-700 py-2 px-3 rounded hover:bg-blue-300 transition-all duration-200 text-sm font-medium min-w-[80px] flex-shrink-0"
                     title="Add to comparison"
                 >
                     Compare
                 </button>
             </div>
             
-            <!-- Quick Preview on Hover -->
-            <div class="mt-3 pt-3 border-t border-gray-100 hidden" id="preview-{{ agent.id }}">
+            <!-- Working Style Badge (always visible, no hover) -->
+            {% if agent.primary_classification %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
                 <div class="text-xs text-gray-600">
-                    <strong>Working Style:</strong> 
-                    {% if agent.primary_classification %}
-                        {% if agent.primary_classification.role_type == "system-architect" %}
-                        Methodical and strategic, focuses on scalable architecture
-                        {% elif agent.primary_classification.role_type == "performance-engineer" %}
-                        Detail-oriented, optimizes for speed and efficiency
-                        {% elif agent.primary_classification.role_type == "backend-developer" %}
-                        Logical and systematic, builds robust server-side solutions
-                        {% else %}
-                        Collaborative and adaptable, follows best practices
-                        {% endif %}
+                    <span class="font-medium text-gray-800">Style:</span> 
+                    {% if agent.primary_classification.role_type == "system-architect" %}
+                    <span class="text-purple-600">Methodical & Strategic</span>
+                    {% elif agent.primary_classification.role_type == "performance-engineer" %}
+                    <span class="text-green-600">Speed & Efficiency Focused</span>
+                    {% elif agent.primary_classification.role_type == "backend-developer" %}
+                    <span class="text-blue-600">Logical & Systematic</span>
+                    {% elif agent.primary_classification.role_type == "frontend-developer" %}
+                    <span class="text-pink-600">Creative & User-Focused</span>
                     {% else %}
-                    Versatile and helpful across various development tasks
+                    <span class="text-gray-600">Collaborative & Adaptable</span>
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
@@ -189,39 +191,105 @@
 {% endif %}
 
 <script>
-function toggleAgentSelection(agentId, isSelected) {
+// Enhanced interaction functions with proper state management
+function toggleTeamSelection(agentId, buttonElement) {
+    const isSelected = buttonElement.classList.contains('selected');
+    
     if (isSelected) {
-        addToSelection(agentId);
-    } else {
+        // Remove from team
         removeFromSelection(agentId);
+        buttonElement.classList.remove('selected', 'bg-green-500', 'text-white');
+        buttonElement.classList.add('bg-gray-200', 'text-gray-700');
+        buttonElement.innerHTML = '+ Team';
+        showNotification('Removed from team', 'info');
+    } else {
+        // Add to team
+        addToSelection(agentId);
+        buttonElement.classList.add('selected', 'bg-green-500', 'text-white');
+        buttonElement.classList.remove('bg-gray-200', 'text-gray-700');
+        buttonElement.innerHTML = '✓ Added';
+        showNotification('Added to team', 'success');
     }
 }
 
-function addToComparison(agentId) {
-    // Add to comparison list
-    let comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
-    if (!comparisonList.includes(agentId) && comparisonList.length < 10) {
-        comparisonList.push(agentId);
-        localStorage.setItem('comparison_list', JSON.stringify(comparisonList));
-        
-        // Show confirmation
-        showNotification(`Partner added to comparison (${comparisonList.length}/10)`);
-        
-        // Update comparison button if exists
-        updateComparisonButton();
+function toggleComparison(agentId, buttonElement) {
+    const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+    const isSelected = comparisonList.includes(agentId);
+    
+    if (isSelected) {
+        // Remove from comparison
+        const newList = comparisonList.filter(id => id !== agentId);
+        localStorage.setItem('comparison_list', JSON.stringify(newList));
+        buttonElement.classList.remove('selected', 'bg-blue-500', 'text-white');
+        buttonElement.classList.add('bg-blue-200', 'text-blue-700');
+        buttonElement.innerHTML = 'Compare';
+        showNotification(`Removed from comparison (${newList.length}/10)`, 'info');
+    } else {
+        // Add to comparison
+        if (comparisonList.length < 10) {
+            comparisonList.push(agentId);
+            localStorage.setItem('comparison_list', JSON.stringify(comparisonList));
+            buttonElement.classList.add('selected', 'bg-blue-500', 'text-white');
+            buttonElement.classList.remove('bg-blue-200', 'text-blue-700');
+            buttonElement.innerHTML = '✓ Added';
+            showNotification(`Added to comparison (${comparisonList.length}/10)`, 'success');
+        } else {
+            showNotification('Maximum 10 agents can be compared', 'warning');
+            return;
+        }
+    }
+    updateComparisonCounter();
+}
+
+function openAgentPreview(agentId) {
+    // Use the global slide-out panel function
+    if (typeof window.openAgentPreview === 'function') {
+        window.openAgentPreview(agentId);
+    } else {
+        // Fallback to direct navigation
+        window.location.href = `/agents/${agentId}`;
     }
 }
 
-function showNotification(message) {
-    // Simple notification system
+// Enhanced notification system
+function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    const bgColor = {
+        'success': 'bg-green-500',
+        'warning': 'bg-yellow-500', 
+        'info': 'bg-blue-500',
+        'error': 'bg-red-500'
+    }[type] || 'bg-blue-500';
+    
+    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full`;
     notification.textContent = message;
     document.body.appendChild(notification);
     
+    // Animate in
     setTimeout(() => {
-        notification.remove();
+        notification.classList.remove('translate-x-full');
+    }, 10);
+    
+    // Animate out and remove
+    setTimeout(() => {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
     }, 3000);
+}
+
+// Legacy function for compatibility
+function addToComparison(agentId) {
+    const button = document.getElementById(`compare-btn-${agentId}`);
+    if (button) {
+        toggleComparison(agentId, button);
+    } else {
+        // Fallback
+        window.addToComparison(agentId);
+    }
 }
 
 function updateComparisonButton() {
@@ -230,26 +298,34 @@ function updateComparisonButton() {
     if (button) {
         button.textContent = `Compare (${comparisonList.length})`;
     }
+    
+    // Also update the global counter
+    if (typeof window.updateComparisonCounter === 'function') {
+        window.updateComparisonCounter();
+    }
 }
 
-// Show preview on hover
-document.addEventListener('mouseenter', function(e) {
-    if (e.target.closest('.agent-card')) {
-        const card = e.target.closest('.agent-card');
-        const preview = card.querySelector('[id^="preview-"]');
-        if (preview) {
-            preview.classList.remove('hidden');
+// Initialize button states on page load and after HTMX updates
+function initializeButtonStates() {
+    // Update comparison button states
+    const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+    
+    comparisonList.forEach(agentId => {
+        const button = document.getElementById(`compare-btn-${agentId}`);
+        if (button) {
+            button.classList.add('selected', 'bg-blue-500', 'text-white');
+            button.classList.remove('bg-blue-200', 'text-blue-700');
+            button.innerHTML = '✓ Added';
         }
-    }
-}, true);
+    });
+    
+    // Update team button states (would need server-side state for persistence)
+    // For now, we'll reset them on page load since we don't have session persistence
+}
 
-document.addEventListener('mouseleave', function(e) {
-    if (e.target.closest('.agent-card')) {
-        const card = e.target.closest('.agent-card');
-        const preview = card.querySelector('[id^="preview-"]');
-        if (preview) {
-            preview.classList.add('hidden');
-        }
-    }
-}, true);
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeButtonStates);
+
+// Re-initialize after HTMX updates
+document.addEventListener('htmx:afterSwap', initializeButtonStates);
 </script>

@@ -1,7 +1,7 @@
 # Agent model
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Float, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, selectinload
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, and_, or_
@@ -161,13 +161,14 @@ class Agent(Base):
     
     @classmethod
     async def get_popular(cls, session: AsyncSession, limit: int = 10) -> List["Agent"]:
-        """Get popular agents by download count and repository stars"""
+        """Get popular agents by repository stars"""
         stmt = select(cls).options(
             selectinload(cls.repository),
             selectinload(cls.classifications)
-        ).join(Repository).order_by(
-            Repository.star_count.desc(),
-            func.count(DownloadSelection.id).desc()
+        ).join(Repository).where(
+            cls.is_classified == True
+        ).order_by(
+            Repository.star_count.desc()
         ).limit(limit)
         
         result = await session.execute(stmt)
@@ -230,3 +231,10 @@ class Agent(Base):
             data["tech_stack"] = [ts.tag for ts in self.tech_stacks]
         
         return data
+
+
+# Import models after class definition to avoid circular imports
+from app.models.repository import Repository
+from app.models.classification import Classification
+from app.models.tech_stack import TechStack
+from app.models.download_selection import DownloadSelection

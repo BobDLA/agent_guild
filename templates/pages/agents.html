@@ -52,7 +52,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         hx-get="/partials/agent-cards"
                         hx-trigger="input changed delay:500ms"
-                        hx-target="#agent-results"
+                        hx-target="#agent-results-wrapper"
                         hx-include="[name='lifecycle'], [name='role'], [name='tech_stack'], [name='repository_id'], [name='sort']"
                     >
                 </div>
@@ -67,7 +67,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         hx-get="/partials/agent-cards"
                         hx-trigger="change"
-                        hx-target="#agent-results"
+                        hx-target="#agent-results-wrapper"
                         hx-include="[name='search'], [name='role'], [name='tech_stack'], [name='repository_id'], [name='sort']"
                     >
                         <option value="">All Phases</option>
@@ -89,7 +89,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         hx-get="/partials/agent-cards"
                         hx-trigger="change"
-                        hx-target="#agent-results"
+                        hx-target="#agent-results-wrapper"
                         hx-include="[name='search'], [name='lifecycle'], [name='tech_stack'], [name='repository_id'], [name='sort']"
                     >
                         <option value="">All Roles</option>
@@ -111,7 +111,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         hx-get="/partials/agent-cards"
                         hx-trigger="change"
-                        hx-target="#agent-results"
+                        hx-target="#agent-results-wrapper"
                         hx-include="[name='search'], [name='lifecycle'], [name='role'], [name='tech_stack'], [name='sort']"
                     >
                         <option value="">All Halls</option>
@@ -139,7 +139,7 @@
                                 class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                                 hx-get="/partials/agent-cards"
                                 hx-trigger="change"
-                                hx-target="#agent-results"
+                                hx-target="#agent-results-wrapper"
                                 hx-include="[name='search'], [name='lifecycle'], [name='role'], [name='repository_id'], [name='sort'], [name='tech_stack']:checked"
                             >
                             <span class="ml-2 text-sm text-gray-700">
@@ -172,7 +172,7 @@
                             class="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                             hx-get="/partials/agent-cards"
                             hx-trigger="change"
-                            hx-target="#agent-results"
+                            hx-target="#agent-results-wrapper"
                             hx-include="[name='search'], [name='lifecycle'], [name='role'], [name='tech_stack'], [name='repository_id']"
                         >
                             <option value="popularity" {% if sort == 'popularity' %}selected{% endif %}>Popularity</option>
@@ -181,67 +181,41 @@
                             <option value="stars" {% if sort == 'stars' %}selected{% endif %}>Repository Stars</option>
                         </select>
                     </div>
-                    
-                    <div class="mt-2 sm:mt-0 text-sm text-gray-500">
-                        Showing {{ agents|length }} of {{ pagination.total }} partners
-                    </div>
                 </div>
             </div>
             
-            <!-- Agent Results -->
-            <div id="agent-results">
-                {% include "partials/agent_cards.html" %}
+            <!-- Agent Results Wrapper (updated by HTMX) -->
+            <div id="agent-results-wrapper">
+                {% include "partials/agent_results_with_count.html" %}
             </div>
-            
-            <!-- Pagination -->
-            {% if pagination.total_pages > 1 %}
-            <div class="mt-8 flex justify-center">
-                <nav class="flex items-center space-x-2">
-                    {% if pagination.has_prev %}
-                    <a href="/agents?{{ request.url.query }}&page={{ pagination.page - 1 }}" 
-                       class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
-                        Previous
-                    </a>
-                    {% endif %}
-                    
-                    {% for page_num in range(1, pagination.total_pages + 1) %}
-                        {% if page_num == pagination.page %}
-                        <span class="px-3 py-2 rounded-md bg-purple-600 text-white">{{ page_num }}</span>
-                        {% elif page_num <= 3 or page_num > pagination.total_pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
-                        <a href="/agents?{{ request.url.query }}&page={{ page_num }}" 
-                           class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
-                            {{ page_num }}
-                        </a>
-                        {% elif page_num == 4 or page_num == pagination.total_pages - 3 %}
-                        <span class="px-3 py-2 text-gray-400">...</span>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if pagination.has_next %}
-                    <a href="/agents?{{ request.url.query }}&page={{ pagination.page + 1 }}" 
-                       class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
-                        Next
-                    </a>
-                    {% endif %}
-                </nav>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Quick Actions Floating Panel -->
-<div class="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 border" x-data="{ selectedCount: 0 }" x-show="selectedCount > 0">
-    <div class="flex items-center space-x-4">
-        <span class="text-sm text-gray-700">
-            <span x-text="selectedCount"></span> partners selected
-        </span>
-        <a href="/compare" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm">
-            Compare
-        </a>
-        <a href="/download" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors text-sm">
-            Download
-        </a>
+<div class="fixed bottom-6 right-6 space-y-3 z-40">
+    <!-- Back to Top Button -->
+    <button 
+        id="back-to-top"
+        onclick="scrollToTop()"
+        class="hidden bg-gray-800 text-white p-3 rounded-full shadow-lg hover:bg-gray-700 transition-all duration-200 hover:scale-110"
+        title="Back to top"
+    >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
+    
+    <!-- Selection Panel -->
+    <div class="bg-white rounded-lg shadow-lg p-4 border" x-data="{ selectedCount: 0 }" x-show="selectedCount > 0">
+        <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-700">
+                <span x-text="selectedCount"></span> partners selected
+            </span>
+            <a href="/compare" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm">
+                Compare
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -263,6 +237,21 @@
         const element = event.detail.elt;
         if (element.classList.contains('loading-spinner')) {
             element.style.display = 'inline-block';
+        }
+    });
+    
+    // Back to top button functionality
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // Show/hide back to top button
+    window.addEventListener('scroll', function() {
+        const backToTop = document.getElementById('back-to-top');
+        if (window.pageYOffset > 300) {
+            backToTop.classList.remove('hidden');
+        } else {
+            backToTop.classList.add('hidden');
         }
     });
 </script>

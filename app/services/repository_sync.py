@@ -6,7 +6,8 @@ import httpx
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from git import Repo, GitCommandError
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import select, or_
 
 from app.core.database import get_async_session
 from app.models.repository import Repository
@@ -89,10 +90,12 @@ class RepositorySyncService:
             await self._clone_repository(repo_url, repo_path)
         
         # Update GitHub metadata
-        if self.github_token:
-            github_metadata = await self._fetch_github_metadata(repo_name)
-            if github_metadata:
-                await db_repo.update_github_metadata(session, github_metadata)
+        github_metadata = await self._fetch_github_metadata(repo_name)
+        if github_metadata:
+            await db_repo.update_github_metadata(session, github_metadata)
+            print(f"Updated GitHub metadata for {repo_name}: {github_metadata.get('stargazers_count', 0)} stars")
+        else:
+            print(f"Could not fetch GitHub metadata for {repo_name}")
         
         # Mark as synced
         await db_repo.mark_synced(session)

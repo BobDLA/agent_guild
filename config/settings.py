@@ -3,15 +3,19 @@
 import os
 from pathlib import Path
 from typing import List
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Base directories
-BASE_DIR = Path(__file__).parent
-REPOSITORIES_DIR = BASE_DIR / "repositories"
+BASE_DIR = Path(__file__).parent.parent  # Project root
+REPOSITORIES_DIR = BASE_DIR / "data" / "repositories"
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/subagent_guild.db")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR}/data/db/agents.db")
 
 # GitHub API
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")

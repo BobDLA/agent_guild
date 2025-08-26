@@ -1,0 +1,46 @@
+<!-- Results Count -->
+<div id="results-count" class="mt-2 sm:mt-0 text-sm text-gray-500 mb-6">
+    Showing {{ agents|length }} of {{ total }} partners
+</div>
+
+<!-- Agent Results -->
+<div id="agent-results">
+    {% include "partials/agent_cards.html" %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.total_pages > 1 %}
+<div class="mt-8 flex justify-center">
+    <nav class="flex items-center space-x-2">
+        {% if pagination.has_prev %}
+        <a hx-get="/partials/agent-cards?search={{ filters.search or '' }}&lifecycle={{ filters.lifecycle or '' }}&role={{ filters.role or '' }}&repository_id={{ filters.repository_id or '' }}&sort={{ filters.sort or 'popularity' }}&page={{ pagination.page - 1 }}{% if filters.tech_stack %}{% for tech in filters.tech_stack %}&tech_stack={{ tech }}{% endfor %}{% endif %}"
+           hx-target="#agent-results-wrapper"
+           class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
+            Previous
+        </a>
+        {% endif %}
+        
+        {% for page_num in range(1, pagination.total_pages + 1) %}
+            {% if page_num == pagination.page %}
+            <span class="px-3 py-2 rounded-md bg-purple-600 text-white">{{ page_num }}</span>
+            {% elif page_num <= 3 or page_num > pagination.total_pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
+            <a hx-get="/partials/agent-cards?search={{ filters.search or '' }}&lifecycle={{ filters.lifecycle or '' }}&role={{ filters.role or '' }}&repository_id={{ filters.repository_id or '' }}&sort={{ filters.sort or 'popularity' }}&page={{ page_num }}{% if filters.tech_stack %}{% for tech in filters.tech_stack %}&tech_stack={{ tech }}{% endfor %}{% endif %}"
+               hx-target="#agent-results-wrapper"
+               class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
+                {{ page_num }}
+            </a>
+            {% elif page_num == 4 or page_num == pagination.total_pages - 3 %}
+            <span class="px-3 py-2 text-gray-400">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <a hx-get="/partials/agent-cards?search={{ filters.search or '' }}&lifecycle={{ filters.lifecycle or '' }}&role={{ filters.role or '' }}&repository_id={{ filters.repository_id or '' }}&sort={{ filters.sort or 'popularity' }}&page={{ pagination.page + 1 }}{% if filters.tech_stack %}{% for tech in filters.tech_stack %}&tech_stack={{ tech }}{% endfor %}{% endif %}"
+           hx-target="#agent-results-wrapper"
+           class="px-3 py-2 rounded-md bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">
+            Next
+        </a>
+        {% endif %}
+    </nav>
+</div>
+{% endif %}

@@ -1,7 +1,8 @@
 # Repositories API endpoints
 
+import time
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from app.core.database import get_async_session
@@ -249,6 +250,3 @@ async def run_single_repository_sync(repository_name: str):
         
     except Exception as e:
         print(f"Repository synchronization failed for {repository_name}: {str(e)}")
-
-
-import time

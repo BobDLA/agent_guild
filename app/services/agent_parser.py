@@ -157,10 +157,24 @@ class AgentParserService:
             # Calculate content hash
             content_hash = hashlib.sha256(raw_content.encode('utf-8')).hexdigest()[:16]
             
-            # Parse frontmatter
-            post = frontmatter.loads(raw_content)
-            yaml_metadata = post.metadata
-            content = post.content
+            # Try to parse frontmatter with enhanced error handling
+            yaml_metadata = {}
+            content = raw_content
+            
+            try:
+                # Parse frontmatter normally
+                post = frontmatter.loads(raw_content)
+                yaml_metadata = post.metadata
+                content = post.content
+            except yaml.YAMLError as yaml_error:
+                print(f"YAML parsing failed for {file_path}, attempting fallback parsing: {yaml_error}")
+                # Fallback: try to extract basic metadata manually
+                yaml_metadata, content = self._parse_problematic_frontmatter(raw_content)
+            except Exception as parse_error:
+                print(f"Frontmatter parsing failed for {file_path}, using content only: {parse_error}")
+                # No frontmatter, use entire content
+                yaml_metadata = {}
+                content = raw_content
             
             # Extract agent information
             name = self._extract_name(yaml_metadata, file_path)
@@ -265,6 +279,63 @@ class AgentParserService:
         
         await existing_agent.mark_parsed(session, parsed_agent.content_hash)
         return existing_agent
+    
+    def _parse_problematic_frontmatter(self, raw_content: str) -> Tuple[Dict[str, Any], str]:
+        """Fallback parser for YAML frontmatter that failed to parse properly"""
+        metadata = {}
+        content = raw_content
+        
+        # Check if content has frontmatter delimiters
+        if not raw_content.strip().startswith('---'):
+            return metadata, content
+        
+        try:
+            # Split by frontmatter delimiters
+            parts = raw_content.split('---', 2)
+            if len(parts) < 3:
+                return metadata, content
+            
+            # Extract the frontmatter section
+            frontmatter_section = parts[1].strip()
+            content = parts[2].strip()
+            
+            # Try to parse line by line, being more lenient
+            for line in frontmatter_section.split('\n'):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                    
+                # Look for key: value patterns
+                if ':' in line:
+                    # Split only on first colon to handle values with colons
+                    key, value = line.split(':', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    
+                    # Handle different value types
+                    if value.startswith('"') and value.endswith('"'):
+                        # Remove quotes but keep the content as-is
+                        value = value[1:-1]
+                    elif value.startswith("'") and value.endswith("'"):
+                        # Remove single quotes
+                        value = value[1:-1]
+                    elif value.lower() in ['true', 'false']:
+                        # Boolean values
+                        value = value.lower() == 'true'
+                    elif value.isdigit():
+                        # Integer values
+                        value = int(value)
+                    # For complex values (like the long descriptions), keep as string
+                    
+                    metadata[key] = value
+            
+            print(f"Fallback parsing extracted {len(metadata)} metadata fields")
+            return metadata, content
+            
+        except Exception as e:
+            print(f"Fallback parsing also failed: {e}")
+            # Return empty metadata and full content as fallback
+            return {}, raw_content
     
     def _is_likely_agent_file(self, content: str, metadata: Dict[str, Any]) -> bool:
         """Heuristic to determine if file contains a Claude Code subagent"""

@@ -3,8 +3,9 @@
 import os
 import zipfile
 import tempfile
+import io
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -166,9 +167,12 @@ async def generate_package(request: GeneratePackageRequest):
             request.package_name or "subagent_guild_package"
         )
         
+        # Create a BytesIO object to stream the content
+        zip_io = io.BytesIO(zip_content)
+        
         # Return as streaming response
         return StreamingResponse(
-            zip_content,
+            io.BytesIO(zip_content),
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename={request.package_name or 'subagent_guild_package'}.zip"
@@ -195,7 +199,7 @@ async def bulk_download(request: BulkDownloadRequest):
         )
         
         return StreamingResponse(
-            zip_content,
+            io.BytesIO(zip_content),
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename={request.package_name or 'subagent_guild_bulk'}.zip"

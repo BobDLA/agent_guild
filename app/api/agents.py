@@ -67,7 +67,7 @@ async def search_agents(
     tech_stack: Optional[List[str]] = Query(None, description="Technology stack filter"),
     repository_id: Optional[int] = Query(None, description="Repository filter"),
     sort: str = Query("popularity", description="Sort order (popularity, name, recent)"),
-    limit: int = Query(20, ge=1, le=100, description="Results per page"),
+    limit: int = Query(12, ge=1, le=100, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset")
 ):
     """Search and filter agents"""

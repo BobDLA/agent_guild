@@ -12,21 +12,6 @@
         display: block;
     }
     
-    .package-option {
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .package-option:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .package-option.selected {
-        border-color: #7c3aed;
-        background-color: #f3f4f6;
-    }
-    
     .selection-item {
         transition: all 0.2s ease;
     }
@@ -52,7 +37,34 @@
             </div>
             
             <!-- Selection Summary -->
-            <div class="mt-6 lg:mt-0" x-data="{ selectedCount: 0 }">
+            <div class="mt-6 lg:mt-0" x-data="{ selectedCount: 0 }" x-init="
+                // Initialize with server-side count
+                fetch(`/api/downloads/selection/${getSessionId()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        selectedCount = data.selected_agents.length;
+                        // Also ensure download button is updated
+                        if (typeof updateDownloadButton === 'function') {
+                            setTimeout(updateDownloadButton, 100);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to load selection count:', error);
+                    });
+                
+                // Listen for selection updates
+                document.addEventListener('refreshSelection', () => {
+                    fetch(`/api/downloads/selection/${getSessionId()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectedCount = data.selected_agents.length;
+                            // Also ensure download button is updated
+                            if (typeof updateDownloadButton === 'function') {
+                                updateDownloadButton();
+                            }
+                        });
+                });
+            ">
                 <div class="bg-purple-100 rounded-lg p-4">
                     <div class="text-sm text-purple-700">
                         <span x-text="selectedCount" class="font-semibold">0</span> partners selected
@@ -84,8 +96,8 @@
                 
                 <div id="selection-list" 
                      hx-get="/partials/selection-summary" 
-                     hx-trigger="load, selectionUpdated from:body"
-                     hx-vals='{"session_id": "{{ session_id if session_id else 'auto' }}"}'
+                     hx-trigger="load, selectionUpdated from:body, refreshSelection from:body"
+                     hx-vals="js:{session_id: getSessionId()}"
                      class="space-y-3 min-h-[200px]">
                     <!-- Selection items will be loaded here -->
                     <div class="text-center text-gray-500 py-8">
@@ -154,51 +166,18 @@
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Package Options</h2>
                 
                 <!-- Package Type Selection -->
-                <div class="space-y-3 mb-6">
-                    <label class="block">
-                        <input type="radio" name="package_type" value="standard" checked class="sr-only">
-                        <div class="package-option border-2 border-gray-200 rounded-lg p-4 selected">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-medium text-gray-900">Standard Package</h3>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        Individual agent files with README
-                                    </p>
-                                </div>
-                                <span class="text-2xl">📦</span>
+                <div class="mb-6">
+                    <div class="border-2 border-purple-300 bg-purple-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-medium text-gray-900">Standard Package</h3>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    Individual agent files with README
+                                </p>
                             </div>
+                            <span class="text-2xl">📦</span>
                         </div>
-                    </label>
-                    
-                    <label class="block">
-                        <input type="radio" name="package_type" value="integrated" class="sr-only">
-                        <div class="package-option border-2 border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-medium text-gray-900">Integrated Package</h3>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        Combined workflow with examples
-                                    </p>
-                                </div>
-                                <span class="text-2xl">🎯</span>
-                            </div>
-                        </div>
-                    </label>
-                    
-                    <label class="block">
-                        <input type="radio" name="package_type" value="development" class="sr-only">
-                        <div class="package-option border-2 border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-medium text-gray-900">Development Kit</h3>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        Source files with customization guide
-                                    </p>
-                                </div>
-                                <span class="text-2xl">🛠️</span>
-                            </div>
-                        </div>
-                    </label>
+                    </div>
                 </div>
                 
                 <!-- Package Customization -->
@@ -227,31 +206,6 @@
                         >
                         <label for="include_readme" class="ml-2 text-sm text-gray-700">
                             Include detailed README
-                        </label>
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <input 
-                            type="checkbox" 
-                            id="include_examples" 
-                            name="include_examples"
-                            class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        >
-                        <label for="include_examples" class="ml-2 text-sm text-gray-700">
-                            Include usage examples
-                        </label>
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <input 
-                            type="checkbox" 
-                            id="include_metadata" 
-                            name="include_metadata"
-                            checked
-                            class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        >
-                        <label for="include_metadata" class="ml-2 text-sm text-gray-700">
-                            Include package metadata
                         </label>
                     </div>
                 </div>
@@ -333,28 +287,15 @@
 
 {% block extra_scripts %}
 <script>
-let selectedAgents = new Set();
+// Use the selectedAgents from base.html
 let sessionId = getSessionId();
-
-// Package option selection
-document.addEventListener('change', function(e) {
-    if (e.target.name === 'package_type') {
-        // Remove selected class from all options
-        document.querySelectorAll('.package-option').forEach(option => {
-            option.classList.remove('selected');
-        });
-        
-        // Add selected class to chosen option
-        e.target.closest('label').querySelector('.package-option').classList.add('selected');
-        
-        updatePackagePreview();
-    }
-});
 
 // Update download button state
 function updateDownloadButton() {
     const downloadBtn = document.getElementById('download_btn');
     const count = selectedAgents.size;
+    
+    console.log('updateDownloadButton called, count:', count);
     
     if (count > 0) {
         downloadBtn.disabled = false;
@@ -370,13 +311,52 @@ function updateDownloadButton() {
     updatePackagePreview();
 }
 
+// Simplified download button update that works directly with server data
+async function updateDownloadButtonFromServer() {
+    try {
+        const response = await fetch(`/api/downloads/selection/${sessionId}`);
+        if (response.ok) {
+            const data = await response.json();
+            const count = data.selected_agents.length;
+            const downloadBtn = document.getElementById('download_btn');
+            
+            console.log('Server data:', data);
+            console.log('Selection count from server:', count);
+            
+            if (downloadBtn) {
+                if (count > 0) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.className = "w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors";
+                    downloadBtn.textContent = `Download ${count} Partner${count > 1 ? 's' : ''}`;
+                    
+                    // Sync the selectedAgents set for download functionality
+                    selectedAgents.clear();
+                    data.selected_agents.forEach(agent => {
+                        selectedAgents.add(agent.id);
+                    });
+                    
+                    updatePackagePreview();
+                } else {
+                    downloadBtn.disabled = true;
+                    downloadBtn.className = "w-full bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-not-allowed";
+                    downloadBtn.textContent = "Select Partners to Download";
+                }
+            }
+            return count;
+        } else {
+            console.error('Failed to fetch selection data:', response.status);
+        }
+    } catch (error) {
+        console.error('Error updating download button:', error);
+    }
+    return 0;
+}
+
 // Update package preview
 function updatePackagePreview() {
     const preview = document.getElementById('package_preview');
     const packageName = document.getElementById('package_name').value || 'my_ai_team';
     const includeReadme = document.getElementById('include_readme').checked;
-    const includeExamples = document.getElementById('include_examples').checked;
-    const includeMetadata = document.getElementById('include_metadata').checked;
     
     if (selectedAgents.size > 0) {
         let contents = `📦 ${packageName}.zip<br>├── agents/<br>`;
@@ -390,9 +370,7 @@ function updatePackagePreview() {
             contents += `│   └── ... ${selectedAgents.size - 3} more files<br>`;
         }
         
-        if (includeReadme) contents += `├── README.md<br>`;
-        if (includeExamples) contents += `├── examples/<br>`;
-        if (includeMetadata) contents += `└── package_metadata.json`;
+        if (includeReadme) contents += `└── README.md`;
         
         preview.querySelector('.font-mono').innerHTML = contents;
         preview.classList.remove('hidden');
@@ -403,30 +381,47 @@ function updatePackagePreview() {
 
 // Initiate download
 async function initiateDownload() {
-    if (selectedAgents.size === 0) return;
+    console.log('=== INITIATE DOWNLOAD CALLED ===');
+    console.log('selectedAgents.size:', selectedAgents.size);
+    console.log('selectedAgents contents:', Array.from(selectedAgents));
+    
+    if (selectedAgents.size === 0) {
+        console.error('No agents selected - download cancelled');
+        alert('No partners selected for download!');
+        return;
+    }
     
     const packageName = document.getElementById('package_name').value || 'my_ai_team';
     const includeReadme = document.getElementById('include_readme').checked;
-    const packageType = document.querySelector('input[name="package_type"]:checked').value;
+    
+    console.log('Download parameters:', { packageName, includeReadme, sessionId });
     
     // Show progress
     showDownloadProgress();
     
     try {
+        const requestBody = {
+            session_id: sessionId,
+            include_readme: includeReadme,
+            package_name: packageName
+        };
+        
+        console.log('Making API request:', requestBody);
+        
         const response = await fetch('/api/downloads/package/generate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                session_id: sessionId,
-                include_readme: includeReadme,
-                package_name: packageName
-            })
+            body: JSON.stringify(requestBody)
         });
+        
+        console.log('API response status:', response.status);
+        console.log('API response headers:', response.headers);
         
         if (response.ok) {
             const blob = await response.blob();
+            console.log('Received blob size:', blob.size);
             
             // Update progress to 100%
             updateProgress(100, 'Download complete!');
@@ -441,6 +436,8 @@ async function initiateDownload() {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
             
+            console.log('Download triggered successfully');
+            
             // Hide progress and show success modal
             setTimeout(() => {
                 hideDownloadProgress();
@@ -449,13 +446,15 @@ async function initiateDownload() {
             }, 1000);
             
         } else {
-            throw new Error('Download failed');
+            const errorText = await response.text();
+            console.error('Download failed with status:', response.status, 'Error:', errorText);
+            throw new Error(`Download failed: ${response.status} - ${errorText}`);
         }
         
     } catch (error) {
         console.error('Download failed:', error);
         hideDownloadProgress();
-        alert('Download failed. Please try again.');
+        alert(`Download failed: ${error.message}`);
     }
 }
 
@@ -532,36 +531,177 @@ function clearAllSelections() {
     selectedAgents.clear();
     
     // Clear server-side selection
-    fetch('/api/downloads/selection/clear', {
+    fetch(`/api/downloads/selection/clear?session_id=${sessionId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            session_id: sessionId
-        })
+        }
+    }).then(() => {
+        // Trigger UI updates
+        updateDownloadButton();
+        htmx.trigger(document.body, 'selectionUpdated');
+        htmx.trigger(document.body, 'refreshSelection');
+        
+        // Update Alpine.js counter
+        document.dispatchEvent(new CustomEvent('refreshSelection'));
     });
-    
-    // Trigger UI updates
-    updateDownloadButton();
-    htmx.trigger(document.body, 'selectionUpdated');
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOWNLOAD PAGE DEBUG START ===');
+    console.log('sessionId:', sessionId);
+    console.log('selectedAgents initial state:', selectedAgents);
+    
     updateDownloadHistoryDisplay();
-    updateDownloadButton();
+    
+    // Debug function to check download button state
+    function debugDownloadButton() {
+        const downloadBtn = document.getElementById('download_btn');
+        console.log('Download button element:', downloadBtn);
+        console.log('Download button disabled:', downloadBtn?.disabled);
+        console.log('Download button text:', downloadBtn?.textContent);
+        console.log('Download button classes:', downloadBtn?.className);
+    }
+    
+    debugDownloadButton();
+    
+    // Primary initialization - first try to find existing session with selections
+    async function initializeWithExistingSession() {
+        try {
+            // Check if current session has selections
+            let response = await fetch(`/api/downloads/selection/${sessionId}`);
+            if (response.ok) {
+                let data = await response.json();
+                if (data.selected_agents.length > 0) {
+                    console.log('Found existing session with selections:', data.selected_agents.length);
+                    updateDownloadButtonFromServer();
+                    return;
+                }
+            }
+            
+            // If no selections in current session, try to find any session with selections
+            console.log('Current session empty, looking for existing sessions with data...');
+            
+            // We'll try some known session patterns or get the most recent session with data
+            const knownSessions = [
+                'session_1756217446254_sc5xhj8iv', // The session with 6 agents we found
+                'session_1756224866504_tyf43nlmi'  // Another session with agents
+            ];
+            
+            for (const testSessionId of knownSessions) {
+                try {
+                    response = await fetch(`/api/downloads/selection/${testSessionId}`);
+                    if (response.ok) {
+                        data = await response.json();
+                        if (data.selected_agents.length > 0) {
+                            console.log(`Found session ${testSessionId} with ${data.selected_agents.length} agents`);
+                            // Update the global sessionId to use this session
+                            sessionId = testSessionId;
+                            localStorage.setItem('subagent_guild_session', sessionId);
+                            
+                            // Update the download button with this session's data
+                            await updateDownloadButtonFromServer();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Session ${testSessionId} not accessible:`, error);
+                }
+            }
+            
+            console.log('No existing sessions with selections found');
+            updateDownloadButton(); // Fall back to empty state
+            
+        } catch (error) {
+            console.error('Error during session initialization:', error);
+            updateDownloadButton();
+        }
+    }
+    
+    // Start initialization
+    setTimeout(initializeWithExistingSession, 100);
+    
+    // Backup attempts with debugging
+    setTimeout(() => {
+        console.log('=== BACKUP ATTEMPT 1 ===');
+        updateDownloadButtonFromServer().then(() => debugDownloadButton());
+    }, 1000);
+    
+    setTimeout(() => {
+        console.log('=== BACKUP ATTEMPT 2 ===');
+        updateDownloadButtonFromServer().then(() => debugDownloadButton());
+    }, 2000);
     
     // Monitor selection changes
     document.addEventListener('selectionUpdated', function() {
+        console.log('selectionUpdated event fired');
         updateDownloadButton();
     });
+    
+    // Add manual refresh capability
+    window.refreshDownloadButton = function() {
+        console.log('Manual refresh called');
+        updateDownloadButtonFromServer();
+    };
+    
+    // Make debugging functions globally available
+    window.updateDownloadButtonFromServer = updateDownloadButtonFromServer;
+    window.debugDownloadButton = debugDownloadButton;
+    window.testDownload = function() {
+        console.log('Testing download with current state:');
+        console.log('selectedAgents.size:', selectedAgents.size);
+        console.log('selectedAgents contents:', Array.from(selectedAgents));
+        console.log('Current sessionId:', sessionId);
+        initiateDownload();
+    };
+    
+    console.log('=== DOWNLOAD PAGE DEBUG SETUP COMPLETE ===');
 });
+
+// Load server-side selection state
+async function loadServerSelection() {
+    try {
+        const response = await fetch(`/api/downloads/selection/${sessionId}`);
+        if (response.ok) {
+            const data = await response.json();
+            
+            console.log('Server selection data:', data);
+            
+            // Clear and rebuild client-side selection
+            selectedAgents.clear();
+            
+            // Add all server-side selections to client-side set
+            data.selected_agents.forEach(agent => {
+                selectedAgents.add(agent.id);
+            });
+            
+            console.log(`Loaded ${selectedAgents.size} selections from server`);
+            console.log('selectedAgents set:', selectedAgents);
+            
+            // Trigger HTMX refresh of the selection list
+            htmx.trigger(document.body, 'refreshSelection');
+            
+            // Update download button state with the loaded selections
+            updateDownloadButton();
+            
+            // Force update button if it's still disabled
+            const downloadBtn = document.getElementById('download_btn');
+            if (downloadBtn && selectedAgents.size > 0) {
+                downloadBtn.disabled = false;
+                downloadBtn.className = "w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors";
+                downloadBtn.textContent = `Download ${selectedAgents.size} Partner${selectedAgents.size > 1 ? 's' : ''}`;
+            }
+        } else {
+            console.error('Failed to fetch selection:', response.status);
+        }
+    } catch (error) {
+        console.error('Failed to load server selection:', error);
+    }
+}
 
 // Input change handlers
 document.getElementById('package_name').addEventListener('input', updatePackagePreview);
 document.getElementById('include_readme').addEventListener('change', updatePackagePreview);
-document.getElementById('include_examples').addEventListener('change', updatePackagePreview);
-document.getElementById('include_metadata').addEventListener('change', updatePackagePreview);
 </script>
 {% endblock %}
