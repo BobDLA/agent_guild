@@ -284,7 +284,7 @@ class SubagentGuildApp {
                     *,
                     repository:repositories(*),
                     classifications(*),
-                    tech_stack(*)
+                    tech_stacks(*)
                 `, { count: 'exact' });
             
             // Apply filters
@@ -473,7 +473,7 @@ class SubagentGuildApp {
                     *,
                     repository:repositories(*),
                     classifications(*),
-                    tech_stack(*)
+                    tech_stacks(*)
                 `)
                 .eq('id', agentId)
                 .single();
