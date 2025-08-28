@@ -1,0 +1,58 @@
+# Subagent Guild - Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/db/agents.db
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - REPOSITORIES_PATH=/app/data/repositories
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - db-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db-init:
+    build: .
+    command: python -c "
+      import asyncio;
+      from app.core.database import init_database;
+      asyncio.run(init_database())
+      "
+    environment:
+      - DATABASE_URL=sqlite:///./data/db/agents.db
+    volumes:
+      - ./data:/app/data
+    restart: "no"
+
+  scheduler:
+    build: .
+    command: python scripts/scheduler.py
+    environment:
+      - DATABASE_URL=sqlite:///./data/db/agents.db
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - REPOSITORIES_PATH=/app/data/repositories
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  agent_data:
+    driver: local

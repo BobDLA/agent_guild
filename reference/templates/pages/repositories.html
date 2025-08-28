@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Repositories - Subagent Guild{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+            Agent Repositories
+        </h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Explore the collection of repositories that power our subagent ecosystem. Each repository contributes unique agents with specialized capabilities.
+        </p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">{{ repositories|length }}</div>
+            <div class="text-gray-600">Active Repositories</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">
+                {{ repositories|sum(attribute='agent_count') }}
+            </div>
+            <div class="text-gray-600">Total Agents</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">
+                {{ repositories|map(attribute='agent_count')|max }}
+            </div>
+            <div class="text-gray-600">Largest Repository</div>
+        </div>
+    </div>
+
+    <!-- Repository Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for repo in repositories %}
+        <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+            <!-- Repository Header -->
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                        {{ repo.name }}
+                    </h3>
+                    <p class="text-sm text-gray-500">
+                        {{ repo.owner }}/{{ repo.name }}
+                    </p>
+                </div>
+                {% if repo.is_active %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Active
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Inactive
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            {% if repo.description %}
+            <p class="text-gray-600 text-sm mb-4 line-clamp-3">
+                {{ repo.description }}
+            </p>
+            {% endif %}
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ repo.agent_count or 0 }}</div>
+                    <div class="text-xs text-gray-500">Agents</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ repo.star_count or 0 }}</div>
+                    <div class="text-xs text-gray-500">Stars</div>
+                </div>
+            </div>
+
+            <!-- Last Updated -->
+            {% if repo.last_synced %}
+            <div class="text-xs text-gray-500 mb-4">
+                Last synced: {{ repo.last_synced.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex space-x-2">
+                <a href="/agents?repository_id={{ repo.id }}" 
+                   class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-3 rounded-md text-center transition-colors">
+                    View Agents
+                </a>
+                {% if repo.url %}
+                <a href="{{ repo.url }}" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium py-2 px-3 rounded-md text-center transition-colors">
+                    GitHub
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not repositories %}
+    <!-- Empty State -->
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">📚</div>
+        <h3 class="text-xl font-medium text-gray-900 mb-2">No Repositories Found</h3>
+        <p class="text-gray-500 mb-4">
+            No active repositories are currently configured in the system.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Information Section -->
+    <div class="mt-16 bg-gray-50 rounded-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">About Our Repository Network</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">How It Works</h3>
+                <ul class="text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                        <span class="text-purple-600 mr-2">•</span>
+                        Repositories are automatically synced to discover new agents
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-purple-600 mr-2">•</span>
+                        Each agent is classified using AI-powered analysis
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-purple-600 mr-2">•</span>
+                        Metadata and capabilities are extracted and indexed
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-purple-600 mr-2">•</span>
+                        Regular updates ensure fresh content and availability
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Quality Standards</h3>
+                <ul class="text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                        <span class="text-green-600 mr-2">✓</span>
+                        All repositories undergo quality assessment
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-600 mr-2">✓</span>
+                        Agents are validated for proper format and structure
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-600 mr-2">✓</span>
+                        Regular health checks ensure repository accessibility
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-600 mr-2">✓</span>
+                        Community feedback helps maintain high standards
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
