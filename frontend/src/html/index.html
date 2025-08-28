@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subagent Guild - Discover Claude Code Subagents</title>
+    <meta name="description" content="Discover, evaluate, and manage Claude Code subagents from multiple repositories">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-username.github.io/agent-quild2/">
+    <meta property="og:title" content="Subagent Guild - Discover Claude Code Subagents">
+    <meta property="og:description" content="Discover, evaluate, and manage Claude Code subagents from multiple repositories">
+    <meta property="og:image" content="https://your-username.github.io/agent-quild2/assets/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://your-username.github.io/agent-quild2/">
+    <meta property="twitter:title" content="Subagent Guild - Discover Claude Code Subagents">
+    <meta property="twitter:description" content="Discover, evaluate, and manage Claude Code subagents from multiple repositories">
+    <meta property="twitter:image" content="https://your-username.github.io/agent-quild2/assets/og-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        guild: {
+                            gold: '#f59e0b',
+                            purple: '#8b5cf6',
+                            teal: '#14b8a6',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Loading Spinner -->
+    <div id="loading" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading Subagent Guild...</p>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <h1 class="text-2xl font-bold text-gray-900">
+                                <i class="fas fa-users text-guild-purple mr-2"></i>
+                                Subagent Guild
+                            </h1>
+                        </div>
+                        <nav class="ml-10 flex items-baseline space-x-4">
+                            <a href="#home" class="nav-link text-gray-900 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                Home
+                            </a>
+                            <a href="#agents" class="nav-link text-gray-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                Browse Agents
+                            </a>
+                            <a href="#repositories" class="nav-link text-gray-500 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                Repositories
+                            </a>
+                        </nav>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="compare-btn" class="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-balance-scale mr-2"></i>
+                            Compare (<span id="compare-count">0</span>)
+                        </button>
+                        <button id="download-btn" class="bg-guild-gold text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-download mr-2"></i>
+                            Download (<span id="download-count">0</span>)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Home Section -->
+            <section id="home" class="mb-12">
+                <div class="text-center">
+                    <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                        Discover Claude Code Subagents
+                    </h2>
+                    <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                        Browse and evaluate specialized AI assistants from the Claude Code community. 
+                        Find the perfect subagents for your development workflow.
+                    </p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-robot text-3xl text-primary-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Agents</p>
+                                <p class="text-2xl font-semibold text-gray-900" id="total-agents">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-code-branch text-3xl text-guild-purple"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Repositories</p>
+                                <p class="text-2xl font-semibold text-gray-900" id="total-repos">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-tags text-3xl text-guild-teal"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Tech Stacks</p>
+                                <p class="text-2xl font-semibold text-gray-900" id="total-tech">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-star text-3xl text-guild-gold"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Stars</p>
+                                <p class="text-2xl font-semibold text-gray-900" id="total-stars">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Search -->
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="quick-search" 
+                                    placeholder="Search agents by name, description, or technology..."
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                >
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="lifecycle-filter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option value="">All Lifecycle Phases</option>
+                                <option value="general">General</option>
+                                <option value="concept">Concept</option>
+                                <option value="design">Design</option>
+                                <option value="development">Development</option>
+                                <option value="testing">Testing</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="operations">Operations</option>
+                            </select>
+                            <select id="role-filter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option value="">All Roles</option>
+                                <option value="product-manager">Product Manager</option>
+                                <option value="system-architect">System Architect</option>
+                                <option value="backend-developer">Backend Developer</option>
+                                <option value="frontend-developer">Frontend Developer</option>
+                                <option value="performance-engineer">Performance Engineer</option>
+                                <option value="devops-engineer">DevOps Engineer</option>
+                                <option value="qa-tester">QA Tester</option>
+                                <option value="security-specialist">Security Specialist</option>
+                                <option value="data-engineer">Data Engineer</option>
+                            </select>
+                            <button id="search-btn" class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                                <i class="fas fa-search mr-2"></i>
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agents Section -->
+            <section id="agents" class="mb-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-900">Browse Agents</h2>
+                    <div class="flex items-center gap-4">
+                        <select id="sort-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="name">Sort by Name</option>
+                            <option value="stars">Sort by Stars</option>
+                            <option value="updated">Sort by Updated</option>
+                            <option value="created">Sort by Created</option>
+                        </select>
+                        <select id="limit-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="12">12 per page</option>
+                            <option value="24">24 per page</option>
+                            <option value="48">48 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Agents Grid -->
+                <div id="agents-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Agents will be loaded here dynamically -->
+                </div>
+
+                <!-- Loading State -->
+                <div id="agents-loading" class="text-center py-12 hidden">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Loading agents...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="agents-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 mb-4">No agents found matching your criteria.</p>
+                    <button id="reset-filters-btn" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Reset Filters
+                    </button>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="flex justify-center items-center gap-2 mt-8">
+                    <!-- Pagination will be loaded here dynamically -->
+                </div>
+            </section>
+
+            <!-- Repositories Section -->
+            <section id="repositories" class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Source Repositories</h2>
+                <div id="repositories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Repositories will be loaded here dynamically -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Subagent Guild</h3>
+                        <p class="text-gray-300 text-sm">
+                            Discover, evaluate, and manage Claude Code subagents from multiple repositories.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-4">Quick Links</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><a href="#home" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                            <li><a href="#agents" class="text-gray-300 hover:text-white transition-colors">Browse Agents</a></li>
+                            <li><a href="#repositories" class="text-gray-300 hover:text-white transition-colors">Repositories</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-4">Resources</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><a href="https://docs.anthropic.com/claude/docs/intro-to-claude" class="text-gray-300 hover:text-white transition-colors">Claude Documentation</a></li>
+                            <li><a href="https://github.com" class="text-gray-300 hover:text-white transition-colors">GitHub</a></li>
+                            <li><a href="https://supabase.com" class="text-gray-300 hover:text-white transition-colors">Supabase</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-4">Powered By</h4>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-gray-300 text-sm">Claude API</span>
+                            <span class="text-gray-300 text-sm">Supabase</span>
+                            <span class="text-gray-300 text-sm">GitHub Pages</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-t border-gray-700 mt-8 pt-8 text-center">
+                    <p class="text-gray-400 text-sm">
+                        © 2024 Subagent Guild. Built with ❤️ using Claude Code.
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <!-- Agent Detail Modal -->
+    <div id="agent-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 id="modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div id="modal-content">
+                    <!-- Modal content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="bundle.js"></script>
+</body>
+</html>
