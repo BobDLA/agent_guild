@@ -51,7 +51,12 @@ class SubagentGuildApp {
     
     getCurrentPagePath() {
         // Get current page path from URL
-        const path = window.location.pathname;
+        let path = window.location.pathname;
+        
+        // Remove /agent_guild/ prefix if present (for GitHub Pages deployment)
+        if (path.startsWith('/agent_guild/')) {
+            path = path.substring('/agent_guild'.length);
+        }
         
         // Handle file:// URLs (local development)
         if (path.includes('/index.html')) {
