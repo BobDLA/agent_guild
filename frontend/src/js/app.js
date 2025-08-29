@@ -356,7 +356,7 @@ class SubagentGuildApp {
                 <p class="text-gray-600 text-sm mb-4 line-clamp-3">${repo.description || 'No description available'}</p>
                 <div class="flex items-center justify-between">
                     <span class="text-xs text-gray-500">${repo.language || 'Unknown'}</span>
-                    <a href="/agents?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                    <a href="/agent_guild/agents?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
                         View Agents →
                     </a>
                 </div>
@@ -1249,7 +1249,7 @@ class SubagentGuildApp {
         const addMoreBtn = document.getElementById('add-more-btn');
         if (addMoreBtn) {
             addMoreBtn.onclick = () => {
-                window.location.href = '/agents.html';
+                window.location.href = '/agent_guild/agents.html';
             };
         }
         
@@ -1345,7 +1345,7 @@ class SubagentGuildApp {
             return;
         }
         
-        const shareUrl = `${window.location.origin}/compare.html?agent_ids=${comparisonList.join(',')}`;
+        const shareUrl = `${window.location.origin}/agent_guild/compare.html?agent_ids=${comparisonList.join(',')}`;
         
         if (navigator.share) {
             navigator.share({
@@ -1743,7 +1743,7 @@ class SubagentGuildApp {
         agents.forEach(agent => {
             html += `<td>
                 <div class="flex gap-2">
-                    <a href="/agents.html?id=${agent.id}" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                    <a href="/agent_guild/agents.html?id=${agent.id}" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                         View Details
                     </a>
                     <button onclick="app.removeFromComparison(${agent.id})" class="bg-red-500 text-white py-1 px-3 rounded text-sm hover:bg-red-600 transition-colors">
@@ -1982,7 +1982,7 @@ class SubagentGuildApp {
 
                     <!-- Actions -->
                     <div class="flex space-x-2">
-                        <a href="/agents?repository_id=${repo.id}" 
+                        <a href="/agent_guild/agents?repository_id=${repo.id}" 
                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-3 rounded-md text-center transition-colors">
                             View Agents
                         </a>
@@ -2201,7 +2201,7 @@ class SubagentGuildApp {
                 }).join('')}
                 
                 <div class="pt-3 border-t border-gray-200">
-                    <a href="/compare.html?agent_ids=${agents.map(a => a.id).join(',')}" 
+                    <a href="/agent_guild/compare.html?agent_ids=${agents.map(a => a.id).join(',')}" 
                        class="w-full bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors block">
                         Compare All
                     </a>
