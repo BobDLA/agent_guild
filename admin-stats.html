@@ -1,0 +1,255 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Visit Statistics - Subagent Guild Admin</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script><style>.stat-card {
+            @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200;
+        }
+        .stat-value {
+            @apply text-3xl font-bold text-gray-900;
+        }
+        .stat-label {
+            @apply text-sm text-gray-600 mt-1;
+        }
+        .chart-container {
+            @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200;
+        }</style><script defer="defer" src="/agent_guild/main.js"></script></head><body class="bg-gray-50"><nav class="bg-white shadow-sm border-b"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex justify-between h-16"><div class="flex items-center"><div class="flex-shrink-0"><h1 class="text-xl font-bold text-gray-900">📊 Visit Statistics</h1></div><div class="ml-6 flex space-x-8"><a href="/agent_guild/" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">Home</a> <a href="/agent_guild/agents.html" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">Agents</a> <a href="/agent_guild/about.html" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">About</a></div></div></div></div></nav><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="mb-8"><h1 class="text-3xl font-bold text-gray-900">Visit Statistics Dashboard</h1><p class="text-gray-600 mt-2">Track and analyze visitor traffic across all pages</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"><div class="stat-card"><div class="stat-value text-blue-600" id="total-visits">0</div><div class="stat-label">Total Visits</div></div><div class="stat-card"><div class="stat-value text-green-600" id="unique-visitors">0</div><div class="stat-label">Unique Visitors</div></div><div class="stat-card"><div class="stat-value text-purple-600" id="total-pages">0</div><div class="stat-label">Pages Tracked</div></div><div class="stat-card"><div class="stat-value text-orange-600" id="avg-visits-per-day">0</div><div class="stat-label">Avg Visits/Day</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"><div class="chart-container"><h2 class="text-lg font-semibold text-gray-900 mb-4">Page Visits</h2><canvas id="pageVisitsChart" width="400" height="200"></canvas></div><div class="chart-container"><h2 class="text-lg font-semibold text-gray-900 mb-4">Daily Trend (Last 7 Days)</h2><canvas id="dailyTrendChart" width="400" height="200"></canvas></div></div><div class="bg-white rounded-lg shadow-sm border border-gray-200"><div class="px-6 py-4 border-b border-gray-200"><h2 class="text-lg font-semibold text-gray-900">Page Statistics</h2></div><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Visits</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unique Visitors</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Visit</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg/Day</th></tr></thead><tbody id="stats-table-body" class="bg-white divide-y divide-gray-200"></tbody></table></div></div><div class="mt-6 text-center"><button onclick="refreshData()" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">🔄 Refresh Data</button></div></div><script>// Supabase configuration
+        const supabaseUrl = 'https://ndysgbprcsbulnpgdpbm.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Chart instances
+        let pageVisitsChart = null;
+        let dailyTrendChart = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboard();
+        });
+
+        // Load all dashboard data
+        async function loadDashboard() {
+            try {
+                await Promise.all([
+                    loadOverviewStats(),
+                    loadPageVisitsChart(),
+                    loadDailyTrendChart(),
+                    loadStatsTable()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Load overview statistics
+        async function loadOverviewStats() {
+            try {
+                // Get total visits
+                const { data: visitsData, error: visitsError } = await supabase
+                    .from('page_stats')
+                    .select('total_visits');
+                
+                if (visitsError) throw visitsError;
+                
+                const totalVisits = visitsData.reduce((sum, stat) => sum + stat.total_visits, 0);
+                document.getElementById('total-visits').textContent = totalVisits.toLocaleString();
+
+                // Get unique visitors (approximate from sessions)
+                const { data: sessionsData, error: sessionsError } = await supabase
+                    .from('visitor_sessions')
+                    .select('session_id', { count: 'exact', head: true });
+                
+                if (sessionsError) throw sessionsError;
+                
+                document.getElementById('unique-visitors').textContent = sessionsData?.length || 0;
+
+                // Get total pages
+                const { data: pagesData, error: pagesError } = await supabase
+                    .from('page_stats')
+                    .select('page_path', { count: 'exact', head: true });
+                
+                if (pagesError) throw pagesError;
+                
+                document.getElementById('total-pages').textContent = pagesData?.length || 0;
+
+                // Calculate average visits per day
+                const { data: oldestVisit } = await supabase
+                    .from('page_stats')
+                    .select('first_visit')
+                    .order('first_visit', { ascending: true })
+                    .limit(1);
+                
+                if (oldestVisit && oldestVisit.length > 0) {
+                    const firstVisit = new Date(oldestVisit[0].first_visit);
+                    const now = new Date();
+                    const daysDiff = Math.max(1, Math.ceil((now - firstVisit) / (1000 * 60 * 60 * 24)));
+                    const avgPerDay = Math.round(totalVisits / daysDiff);
+                    document.getElementById('avg-visits-per-day').textContent = avgPerDay.toLocaleString();
+                }
+
+            } catch (error) {
+                console.error('Error loading overview stats:', error);
+            }
+        }
+
+        // Load page visits chart
+        async function loadPageVisitsChart() {
+            try {
+                const { data, error } = await supabase
+                    .from('page_stats')
+                    .select('page_path, total_visits')
+                    .order('total_visits', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                const ctx = document.getElementById('pageVisitsChart').getContext('2d');
+                
+                if (pageVisitsChart) {
+                    pageVisitsChart.destroy();
+                }
+
+                pageVisitsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.page_path.replace('/agent_guild/', '')),
+                        datasets: [{
+                            label: 'Visits',
+                            data: data.map(item => item.total_visits),
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading page visits chart:', error);
+            }
+        }
+
+        // Load daily trend chart
+        async function loadDailyTrendChart() {
+            try {
+                // Get last 7 days of data
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 6);
+
+                const { data, error } = await supabase
+                    .from('daily_stats')
+                    .select('date, visits_count')
+                    .gte('date', startDate.toISOString().split('T')[0])
+                    .lte('date', endDate.toISOString().split('T')[0])
+                    .order('date', { ascending: true });
+
+                if (error) throw error;
+
+                // Aggregate by date (in case multiple pages)
+                const dailyTotals = {};
+                data.forEach(item => {
+                    if (!dailyTotals[item.date]) {
+                        dailyTotals[item.date] = 0;
+                    }
+                    dailyTotals[item.date] += item.visits_count;
+                });
+
+                const dates = Object.keys(dailyTotals).sort();
+                const visits = dates.map(date => dailyTotals[date]);
+
+                const ctx = document.getElementById('dailyTrendChart').getContext('2d');
+                
+                if (dailyTrendChart) {
+                    dailyTrendChart.destroy();
+                }
+
+                dailyTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(date => new Date(date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Daily Visits',
+                            data: visits,
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading daily trend chart:', error);
+            }
+        }
+
+        // Load statistics table
+        async function loadStatsTable() {
+            try {
+                const { data, error } = await supabase
+                    .from('page_stats')
+                    .select('*')
+                    .order('total_visits', { ascending: false });
+
+                if (error) throw error;
+
+                const tbody = document.getElementById('stats-table-body');
+                tbody.innerHTML = '';
+
+                data.forEach(stat => {
+                    const row = document.createElement('tr');
+                    const avgPerDay = stat.first_visit ? 
+                        Math.round(stat.total_visits / Math.max(1, Math.ceil((new Date(stat.last_visit) - new Date(stat.first_visit)) / (1000 * 60 * 60 * 24)))) : 0;
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ${stat.page_path.replace('/agent_guild/', '')}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${stat.total_visits.toLocaleString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${stat.unique_visitors.toLocaleString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${new Date(stat.first_visit).toLocaleDateString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${new Date(stat.last_visit).toLocaleDateString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${avgPerDay.toLocaleString()}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading stats table:', error);
+            }
+        }
+
+        // Refresh all data
+        async function refreshData() {
+            const button = event.target;
+            button.textContent = '🔄 Refreshing...';
+            button.disabled = true;
+            
+            await loadDashboard();
+            
+            setTimeout(() => {
+                button.textContent = '🔄 Refresh Data';
+                button.disabled = false;
+            }, 1000);
+        }</script></body></html>

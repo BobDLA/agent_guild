@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Visit Tracking Test - Subagent Guild</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script><script defer="defer" src="/agent_guild/main.js"></script></head><body class="bg-gray-50 min-h-screen"><div class="max-w-4xl mx-auto px-4 py-8"><div class="bg-white rounded-lg shadow-sm p-6"><h1 class="text-2xl font-bold text-gray-900 mb-4">🔍 Visit Tracking Test</h1><p class="text-gray-600 mb-6">This page tests the visit tracking system. Each visit should be counted in the database.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-blue-50 p-4 rounded-lg"><h3 class="font-semibold text-blue-900">Current Page</h3><p class="text-blue-700" id="current-path">/test-visit-tracking.html</p></div><div class="bg-green-50 p-4 rounded-lg"><h3 class="font-semibold text-green-900">Session ID</h3><p class="text-green-700 text-sm" id="session-id">Loading...</p></div></div><div class="bg-gray-50 p-4 rounded-lg mb-6"><h3 class="font-semibold text-gray-900 mb-2">Test Results</h3><div id="test-results"><p class="text-gray-600">Testing visit tracking...</p></div></div><div class="flex gap-4"><button onclick="testVisitTracking()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Test Visit Tracking</button> <button onclick="window.location.reload()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Reload Page</button> <a href="/agent_guild/admin-stats.html" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 inline-flex items-center">View Statistics</a></div></div></div><script src="visit-tracker.js"></script><script>// Test visit tracking
+        async function testVisitTracking() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p class="text-blue-600">🔄 Testing visit tracking...</p>';
+            
+            try {
+                // Show session ID
+                const sessionId = localStorage.getItem('visit_session_id');
+                document.getElementById('session-id').textContent = sessionId || 'No session found';
+                
+                // Test manual tracking
+                if (window.visitTracker) {
+                    await window.visitTracker.trackVisit('/test-visit-tracking.html', 'Visit Tracking Test');
+                    
+                    // Test getting stats
+                    const stats = await window.visitTracker.getPageStats('/test-visit-tracking.html');
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="space-y-2">
+                            <p class="text-green-600">✅ Visit tracking test successful!</p>
+                            <p class="text-gray-600">Session ID: ${sessionId}</p>
+                            <p class="text-gray-600">Page stats: ${stats ? 'Found' : 'Not found yet'}</p>
+                            ${stats ? `<p class="text-gray-600">Total visits: ${stats.total_visits}</p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<p class="text-red-600">❌ Visit tracker not loaded</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testVisitTracking, 1000);
+        });</script></body></html>
