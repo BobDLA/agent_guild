@@ -106,3 +106,6 @@ frontend/.idea/
 frontend/.vscode/
 frontend/*.swp
 frontend*.swo
+
+# Supabase configuration
+supabase_config/
