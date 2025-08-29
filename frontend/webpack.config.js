@@ -107,31 +107,7 @@ module.exports = {
         useShortDoctype: true
       }
     }),
-    new HtmlWebpackPlugin({
-      template: './src/html/admin-stats.html',
-      filename: 'admin-stats.html',
-      minify: {
-        collapseWhitespace: true,
-        removeComments: true,
-        removeRedundantAttributes: true,
-        removeScriptTypeAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        useShortDoctype: true
-      }
-    }),
-    new HtmlWebpackPlugin({
-      template: './src/html/test-visit-tracking.html',
-      filename: 'test-visit-tracking.html',
-      minify: {
-        collapseWhitespace: true,
-        removeComments: true,
-        removeRedundantAttributes: true,
-        removeScriptTypeAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        useShortDoctype: true
-      }
-    }),
-  ],
+    ],
   devServer: {
     static: {
       directory: path.join(__dirname, 'dist'),
