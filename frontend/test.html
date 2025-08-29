@@ -125,11 +125,16 @@
         </div>
     </main>
 
+    <!-- Environment Configuration -->
+    <script src="/agent_guild/config.js"></script>
+    
     <script>
         // Test script
-        const supabaseUrl = 'https://ndysgbprcsbulnpgdpbm.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const config = window.SUPABASE_CONFIG;
+        if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+            throw new Error('Missing required Supabase configuration');
+        }
+        const supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
         async function loadTestData() {
             try {

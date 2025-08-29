@@ -3,10 +3,13 @@
 
 class SubagentGuildApp {
     constructor() {
-        // Configuration - read from window config or use defaults
-        const config = window.SUPABASE_CONFIG || {};
-        this.supabaseUrl = config.SUPABASE_URL || 'https://ndysgbprcsbulnpgdpbm.supabase.co';
-        this.supabaseKey = config.SUPABASE_ANON_KEY || config.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
+        // Configuration - read from window config (required)
+        const config = window.SUPABASE_CONFIG;
+        if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+            throw new Error('Missing required Supabase configuration. Please ensure environment variables are properly set.');
+        }
+        this.supabaseUrl = config.SUPABASE_URL;
+        this.supabaseKey = config.SUPABASE_ANON_KEY || config.SUPABASE_KEY;
         
         // Initialize Supabase client
         this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
