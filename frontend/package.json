@@ -5,7 +5,8 @@
   "main": "src/js/app.js",
   "scripts": {
     "dev": "webpack serve --mode development",
-    "build": "webpack --mode production",
+    "build": "node generate-config.js && webpack --mode production",
+    "build:config": "node generate-config.js",
     "deploy": "npm run build && gh-pages -d dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

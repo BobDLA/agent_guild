@@ -9,12 +9,21 @@ __pycache__/
 
 # Environment files
 .env
+.env.local
+.env.production
+.env.development
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/.env.development
 
 # Database files (exclude main classification database)
 *.db
@@ -109,3 +118,4 @@ frontend*.swo
 
 # Supabase configuration
 supabase_config/
+supabase_config

@@ -3,9 +3,10 @@
 
 class SubagentGuildApp {
     constructor() {
-        // Configuration - use Supabase directly
-        this.supabaseUrl = 'https://ndysgbprcsbulnpgdpbm.supabase.co';
-        this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
+        // Configuration - read from window config or use defaults
+        const config = window.SUPABASE_CONFIG || {};
+        this.supabaseUrl = config.SUPABASE_URL || 'https://ndysgbprcsbulnpgdpbm.supabase.co';
+        this.supabaseKey = config.SUPABASE_ANON_KEY || config.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
         
         // Initialize Supabase client
         this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);

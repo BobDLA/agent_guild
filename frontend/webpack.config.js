@@ -32,6 +32,13 @@ module.exports = {
           filename: 'visit-tracker.js'
         }
       },
+      {
+        test: /config\.js$/,
+        type: 'asset/resource',
+        generator: {
+          filename: 'config.js'
+        }
+      },
     ],
   },
   plugins: [

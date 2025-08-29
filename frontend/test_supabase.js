@@ -1,9 +1,9 @@
 // Simple test script to verify Supabase connection and data
 const { createClient } = require('@supabase/supabase-js');
 
-// Configuration
-const supabaseUrl = 'https://ndysgbprcsbulnpgdpbm.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
+// Configuration - Read from environment variables
+const supabaseUrl = process.env.SUPABASE_URL || 'https://ndysgbprcsbulnpgdpbm.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
