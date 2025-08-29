@@ -286,3 +286,8 @@ The project has a planned migration to GitHub Pages + Supabase architecture (see
 - Exporting SQLite data to Supabase PostgreSQL
 - Deploying frontend to GitHub Pages
 - Maintaining local data processing pipeline
+
+
+## Don't merge the working branch to main. till user required to do it.
+## please visit the  frontend only  at :3000.  Please use play wright to debug the issue Please capture a picture when you   solve it。 But don't ocr the picture or try to under stand the picture. You don't have the ability to do that. 
+## Please refer to the referece design. 

@@ -708,7 +708,9 @@ function highlightSharedTechnologies() {
     const allTechTags = new Map();
     
     comparedAgents.forEach(agent => {
-        agent.tech_stack.forEach(tech => {
+        // Use tech_tags instead of tech_stack and add null checking
+        const techTags = agent.tech_tags || [];
+        techTags.forEach(tech => {
             if (!allTechTags.has(tech)) {
                 allTechTags.set(tech, []);
             }

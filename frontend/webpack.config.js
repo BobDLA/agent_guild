@@ -2,10 +2,12 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/js/app.js',
+  entry: {
+    main: './src/js/app.js',
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].[contenthash].js',
+    filename: '[name].js',
     clean: true,
     publicPath: ''
   },
@@ -38,6 +40,66 @@ module.exports = {
         useShortDoctype: true
       }
     }),
+    new HtmlWebpackPlugin({
+      template: './src/html/agents.html',
+      filename: 'agents.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/compare.html',
+      filename: 'compare.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/repositories.html',
+      filename: 'repositories.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/about.html',
+      filename: 'about.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/download.html',
+      filename: 'download.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
   ],
   devServer: {
     static: {
@@ -46,7 +108,17 @@ module.exports = {
     compress: true,
     port: 3000,
     open: true,
-    hot: true
+    hot: true,
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/agents$/, to: '/agents.html' },
+        { from: /^\/compare$/, to: '/compare.html' },
+        { from: /^\/repositories$/, to: '/repositories.html' },
+        { from: /^\/about$/, to: '/about.html' },
+        { from: /^\/download$/, to: '/download.html' },
+        { from: /./, to: '/index.html' }
+      ]
+    }
   },
   optimization: {
     minimize: true,

@@ -74,3 +74,35 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Frontend / Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.node_repl_history
+*.tgz
+
+# Frontend build and cache
+frontend/dist/
+frontend/build/
+frontend/.cache/
+frontend/.temp/
+frontend/.vscode/
+
+# Frontend environment files
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Frontend testing coverage
+frontend/coverage/
+frontend/.nyc_output/
+
+# Frontend IDE and editor files
+frontend/.idea/
+frontend/.vscode/
+frontend/*.swp
+frontend*.swo

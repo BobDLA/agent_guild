@@ -3,12 +3,11 @@
 
 class SubagentGuildApp {
     constructor() {
-        // Configuration - use local FastAPI API
-        this.apiBaseUrl = 'http://localhost:8000/api';
+        // Configuration - use Supabase directly
         this.supabaseUrl = 'https://ndysgbprcsbulnpgdpbm.supabase.co';
         this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXNnYnByY3NidWxucGdkcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDA0NjAsImV4cCI6MjA3MTk3NjQ2MH0.7TvoErb20c0lf9p_cIBDHLRmUlzbHXUTP2YKyHrTwX8';
         
-        // Initialize Supabase client (fallback, but we'll use local API primarily)
+        // Initialize Supabase client
         this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
         
         // State management
@@ -21,7 +20,7 @@ class SubagentGuildApp {
             lifecycle: '',
             role: '',
             repository: '',
-            tech_stack: []
+            techStacks: []
         };
         this.pagination = {
             page: 1,
@@ -162,6 +161,8 @@ class SubagentGuildApp {
         if (searchInput) {
             searchInput.addEventListener('input', this.debounce(() => {
                 this.filters.search = searchInput.value;
+                this.pagination.page = 1; // Reset to first page
+                this.saveFiltersToURL();
                 this.loadAgents();
             }, 500));
         }
@@ -171,6 +172,8 @@ class SubagentGuildApp {
         if (lifecycleFilter) {
             lifecycleFilter.addEventListener('change', () => {
                 this.filters.lifecycle = lifecycleFilter.value;
+                this.pagination.page = 1; // Reset to first page
+                this.saveFiltersToURL();
                 this.loadAgents();
             });
         }
@@ -180,6 +183,19 @@ class SubagentGuildApp {
         if (roleFilter) {
             roleFilter.addEventListener('change', () => {
                 this.filters.role = roleFilter.value;
+                this.pagination.page = 1; // Reset to first page
+                this.saveFiltersToURL();
+                this.loadAgents();
+            });
+        }
+        
+        // Repository filter
+        const repositoryFilter = document.getElementById('repository-filter');
+        if (repositoryFilter) {
+            repositoryFilter.addEventListener('change', () => {
+                this.filters.repository = repositoryFilter.value;
+                this.pagination.page = 1; // Reset to first page
+                this.saveFiltersToURL();
                 this.loadAgents();
             });
         }
@@ -254,27 +270,27 @@ class SubagentGuildApp {
     async loadStats() {
         try {
             // Load agents count
-            const agentsResponse = await fetch(`${this.apiBaseUrl}/agents/`);
-            if (!agentsResponse.ok) throw new Error(`HTTP error! status: ${agentsResponse.status}`);
+            const { data: agents, error: agentsError, count } = await this.supabase
+                .from('agents')
+                .select('*', { count: 'exact', head: true });
             
-            const agentsData = await agentsResponse.json();
-            const agentsCount = agentsData.total || 0;
+            if (agentsError) throw agentsError;
+            const agentsCount = count || 0;
             
             // Load repositories count
-            const reposResponse = await fetch(`${this.apiBaseUrl}/repositories/`);
-            if (!reposResponse.ok) throw new Error(`HTTP error! status: ${reposResponse.status}`);
+            const { data: repositories, error: reposError, count: reposCount } = await this.supabase
+                .from('repositories')
+                .select('*', { count: 'exact', head: true });
             
-            const reposData = await reposResponse.json();
-            const reposCount = reposData.length || 0;
+            if (reposError) throw reposError;
             
             // For now, use default values for classification rate and lifecycle count
-            // These would need dedicated endpoints in the backend
             const classificationRate = 85; // Default value
             const uniqueLifecycles = 7; // Default value based on config
             
             // Update UI
             this.updateElement('total-agents', agentsCount);
-            this.updateElement('total-repositories', reposCount);
+            this.updateElement('total-repositories', reposCount || 0);
             this.updateElement('classification-rate', `${classificationRate}%`);
             this.updateElement('lifecycle-count', uniqueLifecycles);
             
@@ -292,12 +308,14 @@ class SubagentGuildApp {
             const phases = ['development', 'testing', 'deployment', 'operations'];
             
             for (const phase of phases) {
-                const response = await fetch(`${this.apiBaseUrl}/agents/?lifecycle=${phase}&limit=1`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const { data: classifications, error: classificationsError } = await this.supabase
+                    .from('classifications')
+                    .select('agent_id', { count: 'exact', head: true })
+                    .eq('lifecycle_phase', phase);
                 
-                const data = await response.json();
-                const count = data.total || 0;
+                if (classificationsError) throw classificationsError;
                 
+                const count = classifications?.length || 0;
                 const elementId = `${phase.replace('-', '')}-phase-count`;
                 this.updateElement(elementId, count);
             }
@@ -308,10 +326,13 @@ class SubagentGuildApp {
     
     async loadRepositories() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/repositories/`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const { data: repositories, error } = await this.supabase
+                .from('repositories')
+                .select('*')
+                .eq('is_active', true)
+                .order('star_count', { ascending: false });
             
-            const repositories = await response.json();
+            if (error) throw error;
             
             this.repositories = repositories || [];
             this.renderRepositories();
@@ -355,37 +376,95 @@ class SubagentGuildApp {
         if (empty) empty.classList.add('hidden');
         
         try {
-            // Build query parameters
-            const params = new URLSearchParams({
-                limit: this.pagination.limit.toString(),
-                offset: ((this.pagination.page - 1) * this.pagination.limit).toString()
-            });
+            // Build Supabase query
+            let query = this.supabase
+                .from('agents')
+                .select(`
+                    *,
+                    repository:repositories(*),
+                    classifications(*),
+                    tech_stacks(*)
+                `, { count: 'exact' });
             
+            // Apply filters
             if (this.filters.search) {
-                params.append('search', this.filters.search);
+                query = query.or(`name.ilike.%${this.filters.search}%,description.ilike.%${this.filters.search}%,system_prompt.ilike.%${this.filters.search}%`);
             }
             
-            if (this.filters.lifecycle) {
-                params.append('lifecycle', this.filters.lifecycle);
+            // Note: For related table filtering in Supabase, we need to use the correct syntax
+            // The filter might not work as expected with the current approach
+            
+            if (this.filters.repository) {
+                query = query.eq('repository_id', this.filters.repository);
             }
             
-            if (this.filters.role) {
-                params.append('role', this.filters.role);
-            }
+            // For client-side filtering, fetch a larger dataset
+            // Limit to 1000 records to avoid excessive data transfer
+            query = query.range(0, 999);
             
+            // Apply sorting
             const sortSelect = document.getElementById('sort-select');
             const sortBy = sortSelect ? sortSelect.value : 'name';
-            params.append('sort', sortBy);
             
-            const response = await fetch(`${this.apiBaseUrl}/agents/?${params}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            switch (sortBy) {
+                case 'name':
+                    query = query.order('name', { ascending: true });
+                    break;
+                case 'recent':
+                    query = query.order('created_at', { ascending: false });
+                    break;
+                case 'popularity':
+                    // For popularity, we'll sort by name (repository sorting is complex with joins)
+                    query = query.order('name', { ascending: true });
+                    break;
+                default:
+                    query = query.order('name', { ascending: true });
+            }
             
-            const data = await response.json();
+            const { data: agents, error, count } = await query;
             
-            console.log('API Response:', data); // Debug log
+            if (error) throw error;
             
-            this.agents = data.agents || [];
-            this.pagination.total = data.total || this.agents.length;
+            console.log('Supabase Response:', agents); // Debug log
+            
+            // Apply client-side filtering for complex filters
+            let filteredAgents = agents || [];
+            console.log('Initial agents count:', filteredAgents.length);
+            console.log('Applied filters:', this.filters);
+            
+            // Apply lifecycle filter
+            if (this.filters.lifecycle) {
+                const beforeCount = filteredAgents.length;
+                filteredAgents = filteredAgents.filter(agent => 
+                    agent.classifications && agent.classifications.some(c => c.lifecycle_phase === this.filters.lifecycle)
+                );
+                console.log(`Lifecycle filter "${this.filters.lifecycle}": ${beforeCount} -> ${filteredAgents.length}`);
+            }
+            
+            // Apply role filter
+            if (this.filters.role) {
+                const beforeCount = filteredAgents.length;
+                filteredAgents = filteredAgents.filter(agent => 
+                    agent.classifications && agent.classifications.some(c => c.role_type === this.filters.role)
+                );
+                console.log(`Role filter "${this.filters.role}": ${beforeCount} -> ${filteredAgents.length}`);
+            }
+            
+            // Apply tech stack filters
+            if (this.filters.techStacks && this.filters.techStacks.length > 0) {
+                const beforeCount = filteredAgents.length;
+                filteredAgents = filteredAgents.filter(agent => 
+                    agent.tech_stacks && agent.tech_stacks.some(ts => this.filters.techStacks.includes(ts.tag))
+                );
+                console.log(`Tech stack filter [${this.filters.techStacks.join(', ')}]: ${beforeCount} -> ${filteredAgents.length}`);
+            }
+            
+            // Apply pagination after filtering
+            const offset = (this.pagination.page - 1) * this.pagination.limit;
+            const paginatedAgents = filteredAgents.slice(offset, offset + this.pagination.limit);
+            
+            this.agents = paginatedAgents;
+            this.pagination.total = filteredAgents.length;
             this.pagination.totalPages = Math.ceil(this.pagination.total / this.pagination.limit);
             
             console.log('Loaded agents:', this.agents.length, 'Total:', this.pagination.total); // Debug log
@@ -409,6 +488,20 @@ class SubagentGuildApp {
                 console.log('Loading element hidden'); // Debug log
             } else {
                 console.log('Loading element not found'); // Debug log
+            }
+            
+            // Show agents grid
+            const agentsGrid = document.getElementById('agents-grid');
+            if (agentsGrid) {
+                agentsGrid.classList.remove('hidden');
+                console.log('Agents grid shown'); // Debug log
+            }
+            
+            // Show pagination if needed
+            const pagination = document.getElementById('pagination');
+            if (pagination && this.pagination.totalPages > 1) {
+                pagination.style.display = 'flex';
+                console.log('Pagination shown'); // Debug log
             }
             
             if (this.agents.length === 0) {
@@ -511,35 +604,64 @@ class SubagentGuildApp {
     
     renderPagination() {
         const container = document.getElementById('pagination');
-        if (!container) return;
+        const pageNumbers = document.getElementById('page-numbers');
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        
+        if (!container || !pageNumbers || !prevButton || !nextButton) return;
         
         if (this.pagination.totalPages <= 1) {
-            container.innerHTML = '';
+            container.style.display = 'none';
             return;
         }
         
-        let html = '';
+        // Show pagination container
+        container.style.display = 'flex';
         
-        // Previous button
-        if (this.pagination.page > 1) {
-            html += `<button onclick="app.goToPage(${this.pagination.page - 1})" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Previous</button>`;
+        // Update previous button
+        prevButton.disabled = this.pagination.page <= 1;
+        prevButton.onclick = () => this.goToPage(this.pagination.page - 1);
+        
+        // Update next button
+        nextButton.disabled = this.pagination.page >= this.pagination.totalPages;
+        nextButton.onclick = () => this.goToPage(this.pagination.page + 1);
+        
+        // Generate page numbers
+        let pageNumbersHtml = '';
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, this.pagination.page - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(this.pagination.totalPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
         
-        // Page numbers
-        for (let i = 1; i <= this.pagination.totalPages; i++) {
-            if (i === this.pagination.page) {
-                html += `<button class="px-3 py-2 bg-purple-600 text-white rounded">${i}</button>`;
-            } else {
-                html += `<button onclick="app.goToPage(${i})" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">${i}</button>`;
+        // First page and ellipsis
+        if (startPage > 1) {
+            pageNumbersHtml += `<button onclick="app.goToPage(1)" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">1</button>`;
+            if (startPage > 2) {
+                pageNumbersHtml += `<span class="px-2 text-gray-500">...</span>`;
             }
         }
         
-        // Next button
-        if (this.pagination.page < this.pagination.totalPages) {
-            html += `<button onclick="app.goToPage(${this.pagination.page + 1})" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Next</button>`;
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === this.pagination.page) {
+                pageNumbersHtml += `<button class="px-3 py-1 text-sm bg-purple-600 text-white border border-purple-600 rounded-md">${i}</button>`;
+            } else {
+                pageNumbersHtml += `<button onclick="app.goToPage(${i})" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">${i}</button>`;
+            }
         }
         
-        container.innerHTML = html;
+        // Last page and ellipsis
+        if (endPage < this.pagination.totalPages) {
+            if (endPage < this.pagination.totalPages - 1) {
+                pageNumbersHtml += `<span class="px-2 text-gray-500">...</span>`;
+            }
+            pageNumbersHtml += `<button onclick="app.goToPage(${this.pagination.totalPages})" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">${this.pagination.totalPages}</button>`;
+        }
+        
+        pageNumbers.innerHTML = pageNumbersHtml;
     }
     
     async previewAgent(agentId) {
@@ -649,12 +771,14 @@ class SubagentGuildApp {
         `;
         
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
     
     closeAgentModal() {
         const modal = document.getElementById('agent-modal');
         if (modal) {
             modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     }
     
@@ -675,17 +799,26 @@ class SubagentGuildApp {
         }
         
         this.updateSelectionCounter();
+        
+        // Save selection to localStorage for download page
+        localStorage.setItem('selected_agents', JSON.stringify([...this.selectedAgents]));
     }
     
     toggleComparison(agentId) {
         const button = document.getElementById(`compare-btn-${agentId}`);
-        if (!button) return;
+        if (!button) {
+            console.error(`Compare button not found for agent ${agentId}`);
+            return;
+        }
+        
+        console.log(`Toggling comparison for agent ${agentId}, current list size: ${this.comparisonList.size}`);
         
         if (this.comparisonList.has(agentId)) {
             this.comparisonList.delete(agentId);
             button.classList.remove('selected');
             button.textContent = 'Compare';
             this.showToast('Agent removed from comparison', 'success');
+            console.log(`Agent ${agentId} removed from comparison, new size: ${this.comparisonList.size}`);
         } else {
             if (this.comparisonList.size >= 10) {
                 this.showToast('Maximum 10 agents can be compared', 'warning');
@@ -695,34 +828,65 @@ class SubagentGuildApp {
             button.classList.add('selected');
             button.textContent = '✓ Compare';
             this.showToast('Agent added to comparison', 'success');
+            console.log(`Agent ${agentId} added to comparison, new size: ${this.comparisonList.size}`);
         }
         
+        // Save to localStorage
+        localStorage.setItem('comparison_list', JSON.stringify([...this.comparisonList]));
+        console.log('Comparison list saved to localStorage:', [...this.comparisonList]);
+        
         this.updateComparisonCounter();
+        console.log('Comparison counter updated');
     }
     
     updateSelectionCounter() {
+        // Get selection count from localStorage
+        const selectedAgents = JSON.parse(localStorage.getItem('selected_agents') || '[]');
+        const count = selectedAgents.length;
+        
+        // Update main counter
         const counter = document.getElementById('selection-counter');
         if (counter) {
-            counter.textContent = this.selectedAgents.size;
+            counter.textContent = count;
+        }
+        
+        // Update badge in navigation
+        const badge = document.getElementById('selection-badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
         
         const downloadBtn = document.getElementById('download-btn');
         const downloadCount = document.getElementById('download-count');
         if (downloadBtn && downloadCount) {
-            downloadCount.textContent = this.selectedAgents.size;
-            downloadBtn.disabled = this.selectedAgents.size === 0;
+            downloadCount.textContent = count;
+            downloadBtn.disabled = count === 0;
         }
     }
     
     updateComparisonCounter() {
-        const counter = document.getElementById('comparison-counter');
-        if (counter) {
+        console.log(`Updating comparison counter, list size: ${this.comparisonList.size}`);
+        
+        // Update selection panel
+        const selectionPanel = document.getElementById('selection-panel');
+        const selectedCount = document.getElementById('selected-count');
+        
+        if (selectionPanel && selectedCount) {
             if (this.comparisonList.size > 0) {
-                counter.textContent = this.comparisonList.size;
-                counter.classList.remove('hidden');
+                selectedCount.textContent = this.comparisonList.size;
+                selectionPanel.style.display = 'block';
+                console.log('Selection panel shown with count:', this.comparisonList.size);
             } else {
-                counter.classList.add('hidden');
+                selectionPanel.style.display = 'none';
+                console.log('Selection panel hidden');
             }
+        } else {
+            console.log('Selection panel or selected count element not found');
         }
         
         const compareBtn = document.getElementById('compare-btn');
@@ -730,6 +894,7 @@ class SubagentGuildApp {
         if (compareBtn && compareCount) {
             compareCount.textContent = this.comparisonList.size;
             compareBtn.disabled = this.comparisonList.size === 0;
+            console.log('Compare button updated');
         }
     }
     
@@ -744,24 +909,33 @@ class SubagentGuildApp {
             lifecycle: '',
             role: '',
             repository: '',
-            tech_stack: []
+            techStacks: []
         };
         
         // Reset form elements
         const searchInput = document.getElementById('quick-search');
         const lifecycleFilter = document.getElementById('lifecycle-filter');
         const roleFilter = document.getElementById('role-filter');
+        const repositoryFilter = document.getElementById('repository-filter');
         
         if (searchInput) searchInput.value = '';
         if (lifecycleFilter) lifecycleFilter.value = '';
         if (roleFilter) roleFilter.value = '';
+        if (repositoryFilter) repositoryFilter.value = '';
+        
+        // Reset tech stack checkboxes
+        document.querySelectorAll('.tech-stack-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
         
         this.pagination.page = 1;
+        this.saveFiltersToURL();
         this.loadAgents();
     }
     
     goToPage(page) {
         this.pagination.page = page;
+        this.saveFiltersToURL();
         this.loadAgents();
     }
     
@@ -859,7 +1033,7 @@ class SubagentGuildApp {
         const elements = [
             'agents-loading', 'agents-empty', 'agents-grid', 'pagination',
             'compare-empty', 'compare-content', 'team-analysis', 'compatibility-insights',
-            'repos-loading', 'repos-empty', 'repositories-grid',
+            'loading', 'repositories-grid',
             'selection-list', 'popular-agents', 'download_progress'
         ];
         
@@ -879,6 +1053,9 @@ class SubagentGuildApp {
         // Update navigation
         this.updateActiveNav('/agents');
         
+        // Load filters from URL
+        this.loadFiltersFromURL();
+        
         // Load agents data
         await this.loadAgents();
         await this.loadAgentsStats();
@@ -888,22 +1065,25 @@ class SubagentGuildApp {
     async loadAgentsStats() {
         try {
             // Load total agents count
-            const agentsResponse = await fetch(`${this.apiBaseUrl}/agents/`);
-            if (!agentsResponse.ok) throw new Error(`HTTP error! status: ${agentsResponse.status}`);
+            const { data: agents, error: agentsError, count } = await this.supabase
+                .from('agents')
+                .select('*', { count: 'exact', head: true });
             
-            const agentsData = await agentsResponse.json();
-            const agentsCount = agentsData.total || 0;
+            if (agentsError) throw agentsError;
+            const agentsCount = count || 0;
             
             // Load repositories count for filter
-            const reposResponse = await fetch(`${this.apiBaseUrl}/repositories/`);
-            if (!reposResponse.ok) throw new Error(`HTTP error! status: ${reposResponse.status}`);
+            const { data: repositories, error: reposError } = await this.supabase
+                .from('repositories')
+                .select('*')
+                .eq('is_active', true);
             
-            const reposData = await reposResponse.json();
-            const reposCount = reposData.total || 0;
+            if (reposError) throw reposError;
+            const reposCount = repositories?.length || 0;
             
             // Update UI
-            this.updateElement('total-agents-count', agentsCount);
-            this.updateElement('total-repositories-count', reposCount);
+            this.updateElement('total-agents', agentsCount);
+            this.updateElement('total-repos', reposCount);
             
         } catch (error) {
             console.error('Error loading agents stats:', error);
@@ -913,10 +1093,13 @@ class SubagentGuildApp {
     async loadFilterOptions() {
         try {
             // Load repositories for filter
-            const reposResponse = await fetch(`${this.apiBaseUrl}/repositories/`);
-            if (!reposResponse.ok) throw new Error(`HTTP error! status: ${reposResponse.status}`);
+            const { data: repositories, error } = await this.supabase
+                .from('repositories')
+                .select('*')
+                .eq('is_active', true)
+                .order('name', { ascending: true });
             
-            const repositories = await reposResponse.json();
+            if (error) throw error;
             
             // Update repository filter dropdown
             const repoFilter = document.getElementById('repository-filter');
@@ -955,8 +1138,98 @@ class SubagentGuildApp {
                     }).join('');
             }
             
+            // Load tech stack options
+            await this.loadTechStackOptions();
+            
         } catch (error) {
             console.error('Error loading filter options:', error);
+        }
+    }
+    
+    applyFilters() {
+        // Get selected tech stacks
+        const selectedTechStacks = Array.from(document.querySelectorAll('.tech-stack-checkbox:checked'))
+            .map(checkbox => checkbox.value);
+        
+        this.filters.techStacks = selectedTechStacks;
+        this.pagination.page = 1; // Reset to first page when filters change
+        this.saveFiltersToURL();
+        this.loadAgents();
+    }
+    
+    saveFiltersToURL() {
+        const params = new URLSearchParams();
+        
+        if (this.filters.search) params.set('search', this.filters.search);
+        if (this.filters.lifecycle) params.set('lifecycle', this.filters.lifecycle);
+        if (this.filters.role) params.set('role', this.filters.role);
+        if (this.filters.repository) params.set('repository', this.filters.repository);
+        if (this.filters.techStacks.length > 0) params.set('techStacks', this.filters.techStacks.join(','));
+        if (this.pagination.page > 1) params.set('page', this.pagination.page);
+        
+        const newURL = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.replaceState({}, '', newURL);
+    }
+    
+    loadFiltersFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        
+        this.filters.search = params.get('search') || '';
+        this.filters.lifecycle = params.get('lifecycle') || '';
+        this.filters.role = params.get('role') || '';
+        this.filters.repository = params.get('repository') || '';
+        this.filters.techStacks = params.get('techStacks') ? params.get('techStacks').split(',') : [];
+        this.pagination.page = parseInt(params.get('page')) || 1;
+        
+        // Update UI elements
+        const searchInput = document.getElementById('quick-search');
+        if (searchInput) searchInput.value = this.filters.search;
+        
+        const lifecycleFilter = document.getElementById('lifecycle-filter');
+        if (lifecycleFilter) lifecycleFilter.value = this.filters.lifecycle;
+        
+        const roleFilter = document.getElementById('role-filter');
+        if (roleFilter) roleFilter.value = this.filters.role;
+        
+        const repositoryFilter = document.getElementById('repository-filter');
+        if (repositoryFilter) repositoryFilter.value = this.filters.repository;
+        
+        // Update tech stack checkboxes
+        document.querySelectorAll('.tech-stack-checkbox').forEach(checkbox => {
+            checkbox.checked = this.filters.techStacks.includes(checkbox.value);
+        });
+    }
+    
+    async loadTechStackOptions() {
+        try {
+            // Get popular tech stacks from agents
+            const { data: techStacks, error } = await this.supabase
+                .from('tech_stacks')
+                .select('tag, count')
+                .order('count', { ascending: false })
+                .limit(20);
+            
+            if (error) throw error;
+            
+            // Update tech stack filter
+            const techStackFilter = document.getElementById('tech-stack-filter');
+            if (techStackFilter) {
+                techStackFilter.innerHTML = techStacks.map(tech => `
+                    <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input type="checkbox" value="${tech.tag}" class="tech-stack-checkbox rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                        <span class="text-sm text-gray-700">${tech.tag}</span>
+                        <span class="text-xs text-gray-500">(${tech.count})</span>
+                    </label>
+                `).join('');
+                
+                // Add event listeners to checkboxes
+                techStackFilter.querySelectorAll('.tech-stack-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => this.applyFilters());
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error loading tech stack options:', error);
         }
     }
     
@@ -964,48 +1237,384 @@ class SubagentGuildApp {
         // Update navigation
         this.updateActiveNav('/compare');
         
+        // Setup event listeners
+        this.setupComparePageEventListeners();
+        
         // Load comparison data
         await this.loadComparisonData();
+    }
+    
+    setupComparePageEventListeners() {
+        // Add more partners button
+        const addMoreBtn = document.getElementById('add-more-btn');
+        if (addMoreBtn) {
+            addMoreBtn.onclick = () => {
+                window.location.href = '/agents.html';
+            };
+        }
+        
+        // Clear all button
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        if (clearAllBtn) {
+            clearAllBtn.onclick = () => {
+                this.clearAllComparisons();
+            };
+        }
+        
+        // Save comparison button
+        const saveComparisonBtn = document.getElementById('save-comparison-btn');
+        if (saveComparisonBtn) {
+            saveComparisonBtn.onclick = () => {
+                this.saveComparison();
+            };
+        }
+        
+        // Download comparison button
+        const downloadComparisonBtn = document.getElementById('download-comparison-btn');
+        if (downloadComparisonBtn) {
+            downloadComparisonBtn.onclick = () => {
+                this.downloadComparison();
+            };
+        }
+        
+        // Share comparison button
+        const shareComparisonBtn = document.getElementById('share-comparison-btn');
+        if (shareComparisonBtn) {
+            shareComparisonBtn.onclick = () => {
+                this.shareComparison();
+            };
+        }
+    }
+    
+    clearAllComparisons() {
+        this.comparisonList.clear();
+        localStorage.setItem('comparison_list', JSON.stringify([]));
+        this.updateComparisonCounter();
+        this.loadComparisonData();
+        this.showToast('All comparisons cleared', 'success');
+    }
+    
+    saveComparison() {
+        const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+        if (comparisonList.length === 0) {
+            this.showToast('No agents to save', 'warning');
+            return;
+        }
+        
+        const name = prompt('Enter a name for this comparison:');
+        if (!name) return;
+        
+        const savedComparisons = JSON.parse(localStorage.getItem('saved_comparisons') || '[]');
+        savedComparisons.push({
+            id: Date.now(),
+            name: name,
+            agentIds: comparisonList,
+            timestamp: new Date().toISOString()
+        });
+        
+        localStorage.setItem('saved_comparisons', JSON.stringify(savedComparisons));
+        this.showToast('Comparison saved successfully', 'success');
+    }
+    
+    downloadComparison() {
+        const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+        if (comparisonList.length === 0) {
+            this.showToast('No agents to download', 'warning');
+            return;
+        }
+        
+        // Create a simple text report
+        const report = `AI Partners Comparison Report\nGenerated: ${new Date().toLocaleDateString()}\n\nAgents compared: ${comparisonList.length}\n\n`;
+        
+        // Create blob and download
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `comparison-report-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        this.showToast('Comparison report downloaded', 'success');
+    }
+    
+    shareComparison() {
+        const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
+        if (comparisonList.length === 0) {
+            this.showToast('No agents to share', 'warning');
+            return;
+        }
+        
+        const shareUrl = `${window.location.origin}/compare.html?agent_ids=${comparisonList.join(',')}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'AI Partners Comparison',
+                text: `Check out this comparison of ${comparisonList.length} AI partners`,
+                url: shareUrl
+            });
+        } else {
+            // Fallback - copy to clipboard
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                this.showToast('Comparison link copied to clipboard', 'success');
+            }).catch(() => {
+                this.showToast('Failed to copy link', 'error');
+            });
+        }
+    }
+    
+    async downloadSelectedAgents() {
+        const selectedAgents = JSON.parse(localStorage.getItem('selected_agents') || '[]');
+        if (selectedAgents.length === 0) {
+            this.showToast('No partners selected to download', 'warning');
+            return;
+        }
+        
+        try {
+            // Show progress
+            const downloadBtn = document.getElementById('download_btn');
+            const progressContainer = document.getElementById('download_progress');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            
+            if (downloadBtn) {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Preparing Download...';
+            }
+            
+            if (progressContainer) {
+                progressContainer.classList.add('active');
+            }
+            
+            // Update progress
+            if (progressBar && progressPercent) {
+                progressBar.style.width = '20%';
+                progressPercent.textContent = '20%';
+            }
+            
+            // Fetch agent data
+            const { data: agents, error } = await this.supabase
+                .from('agents')
+                .select(`
+                    *,
+                    repository:repositories(*),
+                    classifications(*)
+                `)
+                .in('id', selectedAgents);
+            
+            if (error) throw error;
+            
+            if (!agents || agents.length === 0) {
+                this.showToast('No agent data found', 'error');
+                return;
+            }
+            
+            // Update progress
+            if (progressBar && progressPercent) {
+                progressBar.style.width = '60%';
+                progressPercent.textContent = '60%';
+            }
+            
+            // Create package content
+            const packageName = document.getElementById('package_name')?.value || 'my_ai_team';
+            const includeReadme = document.getElementById('include_readme')?.checked !== false;
+            
+            // Create ZIP package
+            const zip = new JSZip();
+            
+            // Add README if requested
+            if (includeReadme) {
+                let readmeContent = `# ${packageName}\n\n`;
+                readmeContent += `## AI Partners Package\n\n`;
+                readmeContent += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+                readmeContent += `This package contains ${agents.length} AI partners:\n\n`;
+                
+                agents.forEach((agent, index) => {
+                    readmeContent += `${index + 1}. **${agent.name}** - ${agent.description}\n`;
+                });
+                
+                readmeContent += `\n## Installation\n\n`;
+                readmeContent += `Each agent is designed to work with Claude Code. Follow the specific instructions for each agent.\n\n`;
+                readmeContent += `## Agents Included\n\n`;
+                
+                agents.forEach((agent, index) => {
+                    const lifecyclePhase = agent.classifications?.lifecycle_phase || 'general';
+                    const roleType = agent.classifications?.role_type || 'general';
+                    
+                    readmeContent += `### ${index + 1}. ${agent.name}\n\n`;
+                    readmeContent += `**Description:** ${agent.description}\n\n`;
+                    readmeContent += `**Lifecycle Phase:** ${lifecyclePhase}\n`;
+                    readmeContent += `**Role Type:** ${roleType}\n`;
+                    readmeContent += `**Repository:** ${agent.repository?.name || 'Unknown'}\n\n`;
+                    
+                    if (agent.system_prompt) {
+                        readmeContent += `**System Prompt:**\n\`\`\`\n${agent.system_prompt}\n\`\`\`\n\n`;
+                    }
+                    
+                    readmeContent += `---\n\n`;
+                });
+                
+                zip.file("README.md", readmeContent);
+            }
+            
+            // Add each agent's details as individual files
+            const agentsFolder = zip.folder("agents");
+            
+            agents.forEach((agent, index) => {
+                const lifecyclePhase = agent.classifications?.lifecycle_phase || 'general';
+                const roleType = agent.classifications?.role_type || 'general';
+                
+                // Create individual agent file
+                const agentContent = `# ${agent.name}\n\n` +
+                    `**Description:** ${agent.description}\n\n` +
+                    `**Lifecycle Phase:** ${lifecyclePhase}\n` +
+                    `**Role Type:** ${roleType}\n` +
+                    `**Repository:** ${agent.repository?.name || 'Unknown'}\n\n` +
+                    `**System Prompt:**\n\`\`\`\n${agent.system_prompt || 'No system prompt available'}\n\`\`\`\n\n` +
+                    `**Instructions:** ${agent.instructions || 'No specific instructions provided'}\n\n`;
+                
+                // Sanitize filename
+                const safeAgentName = agent.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+                agentsFolder.file(`${safeAgentName}.md`, agentContent);
+            });
+            
+            // Update progress
+            if (progressBar && progressPercent) {
+                progressBar.style.width = '90%';
+                progressPercent.textContent = '90%';
+            }
+            
+            // Generate and download the ZIP file
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(zipContent);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${packageName}-${Date.now()}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            // Complete progress
+            if (progressBar && progressPercent) {
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+            }
+            
+            // Show success modal
+            const modal = document.getElementById('download_modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            
+            // Reset button after delay
+            setTimeout(() => {
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download Selected Partners';
+                }
+                
+                if (progressContainer) {
+                    progressContainer.classList.remove('active');
+                }
+                
+                if (progressBar && progressPercent) {
+                    progressBar.style.width = '0%';
+                    progressPercent.textContent = '0%';
+                }
+            }, 2000);
+            
+            this.showToast('Package downloaded successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Error downloading selected agents:', error);
+            this.showToast('Error preparing download', 'error');
+            
+            // Reset button on error
+            const downloadBtn = document.getElementById('download_btn');
+            const progressContainer = document.getElementById('download_progress');
+            
+            if (downloadBtn) {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download Selected Partners';
+            }
+            
+            if (progressContainer) {
+                progressContainer.classList.remove('active');
+            }
+        }
+    }
+    
+    closeDownloadModal() {
+        const modal = document.getElementById('download_modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+    
+    createNewPackage() {
+        this.closeDownloadModal();
+        this.clearAllSelections();
+        
+        // Reset package name
+        const packageNameInput = document.getElementById('package_name');
+        if (packageNameInput) {
+            packageNameInput.value = 'my_ai_team';
+        }
+        
+        // Reset include readme checkbox
+        const includeReadmeCheckbox = document.getElementById('include_readme');
+        if (includeReadmeCheckbox) {
+            includeReadmeCheckbox.checked = true;
+        }
     }
     
     async loadComparisonData() {
         const comparisonList = JSON.parse(localStorage.getItem('comparison_list') || '[]');
         
+        console.log('Loading comparison data, list:', comparisonList);
+        
         if (comparisonList.length === 0) {
             // Show empty state
-            const emptyState = document.getElementById('compare-empty');
-            const content = document.getElementById('compare-content');
+            const emptyState = document.getElementById('empty-state');
+            const comparisonContainer = document.getElementById('comparison-container');
+            const teamAnalysis = document.getElementById('team-analysis');
+            const compatibilityInsights = document.getElementById('compatibility-insights');
             
-            if (emptyState) emptyState.classList.remove('hidden');
-            if (content) content.classList.add('hidden');
+            if (emptyState) emptyState.style.display = 'block';
+            if (comparisonContainer) comparisonContainer.style.display = 'none';
+            if (teamAnalysis) teamAnalysis.style.display = 'none';
+            if (compatibilityInsights) compatibilityInsights.style.display = 'none';
             return;
         }
         
         // Show comparison content
-        const emptyState = document.getElementById('compare-empty');
-        const content = document.getElementById('compare-content');
+        const emptyState = document.getElementById('empty-state');
+        const comparisonContainer = document.getElementById('comparison-container');
+        const teamAnalysis = document.getElementById('team-analysis');
+        const compatibilityInsights = document.getElementById('compatibility-insights');
         
-        if (emptyState) emptyState.classList.add('hidden');
-        if (content) content.classList.remove('hidden');
+        if (emptyState) emptyState.style.display = 'none';
+        if (comparisonContainer) comparisonContainer.style.display = 'block';
+        if (teamAnalysis) teamAnalysis.style.display = 'block';
+        if (compatibilityInsights) compatibilityInsights.style.display = 'block';
         
         // Load agents for comparison
         try {
-            const response = await fetch(`${this.apiBaseUrl}/agents/compare`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    agent_ids: comparisonList
-                })
-            });
+            const { data: agents, error } = await this.supabase
+                .from('agents')
+                .select(`
+                    *,
+                    repository:repositories(*),
+                    classifications(*),
+                    tech_stacks(*)
+                `)
+                .in('id', comparisonList);
             
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (error) throw error;
             
-            const data = await response.json();
-            
-            this.renderComparisonTable(data.agents || []);
-            this.analyzeTeamCompatibility(data.agents || []);
+            this.renderComparisonTable(agents || []);
+            this.analyzeTeamCompatibility(agents || []);
             
         } catch (error) {
             console.error('Error loading comparison data:', error);
@@ -1013,30 +1622,45 @@ class SubagentGuildApp {
         }
     }
     
+    // Helper function to convert string to title case
+    toTitleCase(str) {
+        return str.replace(/(?:^|\s)\w/g, match => match.toUpperCase());
+    }
+    
     renderComparisonTable(agents) {
-        const table = document.getElementById('comparison-table');
-        if (!table) return;
+        const tbody = document.getElementById('comparison-tbody');
+        const headerRow = document.querySelector('thead tr');
+        if (!tbody || !headerRow) return;
         
         if (agents.length === 0) {
-            table.innerHTML = '<tr><td colspan="100%" class="text-center py-8 text-gray-500">No agents selected for comparison</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-8 text-gray-500">No agents selected for comparison</td></tr>';
             return;
         }
         
-        // Build table header
-        let html = '<thead><tr><th>Features</th>';
+        // Capture method reference for use in template
+        const toTitleCase = this.toTitleCase.bind(this);
+        
+        // Clear existing headers (keep the first "Features" column)
+        const existingHeaders = headerRow.querySelectorAll('th.agent-header');
+        existingHeaders.forEach(header => header.remove());
+
+        // Generate headers dynamically like the reference implementation
         agents.forEach(agent => {
-            html += `
-                <th class="agent-header">
-                    <div class="agent-name">${agent.name}</div>
-                    <div class="agent-repo">
-                        <span>🏰</span>
-                        <span>${agent.repository?.name || 'Unknown'}</span>
-                        ${agent.repository?.star_count ? `<span>⭐ ${agent.repository.star_count}</span>` : ''}
-                    </div>
-                </th>
+            const th = document.createElement('th');
+            th.className = 'agent-header';
+            th.innerHTML = `
+                <div class="agent-name">${agent.name}</div>
+                <div class="agent-repo">
+                    <span>🏰</span>
+                    <span>${agent.repository?.name || 'Unknown'}</span>
+                    ${agent.repository?.star_count ? `<span>⭐ ${agent.repository.star_count}</span>` : ''}
+                </div>
             `;
+            headerRow.appendChild(th);
         });
-        html += '</tr></thead><tbody>';
+        
+        // Build table rows (matching reference structure)
+        let html = '';
         
         // Description row
         html += '<tr><td>Description</td>';
@@ -1052,7 +1676,7 @@ class SubagentGuildApp {
             html += `<td>
                 ${primaryClassification 
                     ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        ${primaryClassification.role_type.replace('-', ' ').title()}
+                        ${toTitleCase(primaryClassification.role_type.replace('-', ' '))}
                        </span>`
                     : '<span class="text-gray-500">Not classified</span>'}
             </td>`;
@@ -1066,7 +1690,7 @@ class SubagentGuildApp {
             html += `<td>
                 ${primaryClassification 
                     ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium lifecycle-${primaryClassification.lifecycle_phase}">
-                        ${primaryClassification.lifecycle_phase.replace('-', ' ').title()}
+                        ${toTitleCase(primaryClassification.lifecycle_phase.replace('-', ' '))}
                        </span>`
                     : '<span class="text-gray-500">Not classified</span>'}
             </td>`;
@@ -1079,19 +1703,37 @@ class SubagentGuildApp {
             const techTags = agent.tech_stack ? agent.tech_stack.map(t => t.tag) : [];
             html += `<td>
                 ${techTags.length > 0 
-                    ? `<div class="tech-grid">${techTags.map(tag => `<span class="tech-tag">${tag}</span>`).join('')}</div>`
+                    ? `<div class="tech-grid">${techTags.map(tag => `<span class="tech-tag" data-tech="${tag}">${tag}</span>`).join('')}</div>`
                     : '<span class="text-gray-500">No technologies listed</span>'}
             </td>`;
         });
         html += '</tr>';
         
-        // System Prompt row
+        // Instructions Preview row
         html += '<tr><td>Instructions Preview</td>';
         agents.forEach(agent => {
             html += `<td>
                 ${agent.system_prompt 
-                    ? `<div class="instructions-preview">${agent.system_prompt.substring(0, 500)}${agent.system_prompt.length > 500 ? '...' : ''}</div>`
+                    ? `<div class="instructions-preview">
+                        ${agent.system_prompt.substring(0, 500)}${agent.system_prompt.length > 500 ? '...' : ''}
+                        ${agent.system_prompt.length > 500 ? `<div class="mt-2"><a href="#" onclick="app.previewAgent(${agent.id}); return false;" class="text-purple-600 hover:text-purple-700 text-xs font-medium">View full instructions →</a></div>` : ''}
+                       </div>`
                     : '<span class="text-gray-500 italic">No detailed instructions available</span>'}
+            </td>`;
+        });
+        html += '</tr>';
+        
+        // Prompt Complexity row
+        html += '<tr><td>Prompt Complexity</td>';
+        agents.forEach(agent => {
+            const promptLength = agent.system_prompt ? agent.system_prompt.length : 0;
+            const complexityClass = promptLength > 1000 ? 'complexity-detailed' : promptLength > 500 ? 'complexity-moderate' : 'complexity-simple';
+            const complexityText = promptLength > 1000 ? 'Detailed' : promptLength > 500 ? 'Moderate' : 'Simple';
+            html += `<td>
+                <div class="complexity-badge ${complexityClass}">
+                    <span class="font-medium">${promptLength}</span>
+                    <span class="text-xs">${complexityText}</span>
+                </div>
             </td>`;
         });
         html += '</tr>';
@@ -1101,9 +1743,9 @@ class SubagentGuildApp {
         agents.forEach(agent => {
             html += `<td>
                 <div class="flex gap-2">
-                    <button onclick="app.previewAgent(${agent.id})" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                    <a href="/agents.html?id=${agent.id}" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                         View Details
-                    </button>
+                    </a>
                     <button onclick="app.removeFromComparison(${agent.id})" class="bg-red-500 text-white py-1 px-3 rounded text-sm hover:bg-red-600 transition-colors">
                         Remove
                     </button>
@@ -1112,8 +1754,7 @@ class SubagentGuildApp {
         });
         html += '</tr>';
         
-        html += '</tbody>';
-        table.innerHTML = html;
+        tbody.innerHTML = html;
     }
     
     analyzeTeamCompatibility(agents) {
@@ -1169,7 +1810,7 @@ class SubagentGuildApp {
             
             if (sharedTechnologies.length > 0) {
                 insightsHtml += `
-                    <div class="comparison-similarities p-4 rounded-lg mb-4">
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg mb-4">
                         <h3 class="font-medium text-green-800 mb-2">🤝 Shared Technologies</h3>
                         <p class="text-sm text-green-700">
                             These partners share ${sharedTechnologies.length} technologies: 
@@ -1181,7 +1822,7 @@ class SubagentGuildApp {
             
             if (uniqueTechnologies.length > 0) {
                 insightsHtml += `
-                    <div class="comparison-differences p-4 rounded-lg mb-4">
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg mb-4">
                         <h3 class="font-medium text-yellow-800 mb-2">⚡ Unique Specializations</h3>
                         <p class="text-sm text-yellow-700">
                             Team members bring unique expertise in: <strong>${uniqueTechnologies.slice(0, 5).join(', ')}</strong>
@@ -1218,8 +1859,8 @@ class SubagentGuildApp {
         this.updateActiveNav('/repositories');
         
         // Show loading
-        const loading = document.getElementById('repos-loading');
-        if (loading) loading.classList.remove('hidden');
+        const loading = document.getElementById('loading');
+        if (loading) loading.style.display = 'block';
         
         // Load repositories data
         await this.loadRepositoriesPageData();
@@ -1227,41 +1868,56 @@ class SubagentGuildApp {
     
     async loadRepositoriesPageData() {
         try {
-            // Load repositories
-            const reposResponse = await fetch(`${this.apiBaseUrl}/repositories/`);
-            if (!reposResponse.ok) throw new Error(`HTTP error! status: ${reposResponse.status}`);
+            // Load repositories with agent counts
+            const { data: repositories, error: reposError } = await this.supabase
+                .from('repositories')
+                .select(`
+                    *,
+                    agents(count)
+                `)
+                .eq('is_active', true)
+                .order('star_count', { ascending: false });
             
-            const repositories = await reposResponse.json();
+            if (reposError) throw reposError;
             
-            // Get agents count from the agents endpoint
-            const agentsResponse = await fetch(`${this.apiBaseUrl}/agents/`);
-            if (!agentsResponse.ok) throw new Error(`HTTP error! status: ${agentsResponse.status}`);
+            // Get total agents count
+            const { data: agents, error: agentsError, count } = await this.supabase
+                .from('agents')
+                .select('*', { count: 'exact', head: true });
             
-            const agentsData = await agentsResponse.json();
-            const totalAgents = agentsData.total || 0;
+            if (agentsError) throw agentsError;
+            const totalAgents = count || 0;
             
-            // Calculate largest repository count (this would need to be implemented in the backend)
-            const largestRepoCount = Math.floor(totalAgents / repositories.length) || 0;
+            // Calculate largest repository count
+            const repoAgentCounts = {};
+            let largestRepoCount = 0;
+            
+            if (repositories) {
+                repositories.forEach(repo => {
+                    const agentCount = repo.agents?.[0]?.count || 0;
+                    repoAgentCounts[repo.id] = agentCount;
+                    largestRepoCount = Math.max(largestRepoCount, agentCount);
+                });
+            }
             
             // Update statistics
-            this.updateElement('total-repos-count', repositories?.length || 0);
-            this.updateElement('total-agents-count', totalAgents);
-            this.updateElement('largest-repo-count', largestRepoCount);
+            this.updateElement('total-repos', repositories?.length || 0);
             
             // Render repositories
-            this.renderRepositoriesPage(repositories || [], {});
+            this.renderRepositoriesPage(repositories || [], repoAgentCounts);
             
             // Hide loading
-            const loading = document.getElementById('repos-loading');
-            if (loading) loading.classList.add('hidden');
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
             
             // Show empty state if needed
-            const empty = document.getElementById('repos-empty');
-            if (empty) {
+            const container = document.getElementById('repositories-grid');
+            if (container) {
                 if (repositories && repositories.length > 0) {
-                    empty.classList.add('hidden');
+                    container.style.display = 'grid';
                 } else {
-                    empty.classList.remove('hidden');
+                    container.style.display = 'none';
+                    container.innerHTML = '<div class="col-span-full text-center py-8"><p class="text-gray-500">No repositories found</p></div>';
                 }
             }
             
@@ -1270,8 +1926,8 @@ class SubagentGuildApp {
             this.showToast('Error loading repositories', 'error');
             
             // Hide loading
-            const loading = document.getElementById('repos-loading');
-            if (loading) loading.classList.add('hidden');
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
         }
     }
     
@@ -1391,6 +2047,9 @@ class SubagentGuildApp {
         const container = document.getElementById('popular-agents');
         if (!container) return;
         
+        // Capture method reference for use in template
+        const toTitleCase = this.toTitleCase.bind(this);
+        
         container.innerHTML = agents.map(agent => {
             const primaryClassification = agent.classifications && agent.classifications.length > 0 
                 ? agent.classifications[0] 
@@ -1408,7 +2067,7 @@ class SubagentGuildApp {
                             ${primaryClassification 
                                 ? `<div class="flex gap-2 mb-2">
                                     <span class="classification-badge lifecycle-${primaryClassification.lifecycle_phase}">
-                                        ${primaryClassification.lifecycle_phase.replace('-', ' ').title()}
+                                        ${toTitleCase(primaryClassification.lifecycle_phase.replace('-', ' '))}
                                     </span>
                                 </div>` 
                                 : ''}
@@ -1431,6 +2090,12 @@ class SubagentGuildApp {
     }
     
     async loadCurrentSelection() {
+        // Ensure the selection list is visible
+        const selectionList = document.getElementById('selection-list');
+        if (selectionList) {
+            selectionList.classList.remove('hidden');
+        }
+        
         const selectedAgents = JSON.parse(localStorage.getItem('selected_agents') || '[]');
         
         if (selectedAgents.length === 0) {
@@ -1468,6 +2133,9 @@ class SubagentGuildApp {
             
             if (error) throw error;
             
+            // Ensure DOM is ready before rendering
+            await new Promise(resolve => setTimeout(resolve, 0));
+            
             this.renderSelectionList(agents || []);
             this.updateDownloadButton(agents || []);
             
@@ -1481,41 +2149,65 @@ class SubagentGuildApp {
         const container = document.getElementById('selection-list');
         if (!container) return;
         
-        container.innerHTML = agents.map(agent => {
-            const primaryClassification = agent.classifications && agent.classifications.length > 0 
-                ? agent.classifications[0] 
-                : null;
-            
-            return `
-                <div class="selection-item bg-gray-50 rounded-lg p-4 border">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <h4 class="font-medium text-gray-900 mb-1">${agent.name}</h4>
-                            <p class="text-sm text-gray-600 mb-2">${agent.description || 'No description'}</p>
-                            
-                            ${primaryClassification 
-                                ? `<span class="classification-badge lifecycle-${primaryClassification.lifecycle_phase}">
-                                    ${primaryClassification.lifecycle_phase.replace('-', ' ').title()}
-                                </span>` 
-                                : ''}
-                            
-                            <div class="text-xs text-gray-500 mt-1">
-                                ${agent.repository?.name || 'Unknown'}
-                            </div>
-                        </div>
-                        
-                        <button 
-                            onclick="app.removeFromSelection(${agent.id})"
-                            class="ml-3 text-red-500 hover:text-red-700 transition-colors"
-                        >
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
+        if (agents.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <div class="text-4xl mb-2">👥</div>
+                    <p class="text-sm">No partners selected yet</p>
+                    <p class="text-xs text-gray-400 mt-2">Browse agents to add to your selection</p>
                 </div>
             `;
-        }).join('');
+            return;
+        }
+        
+        // Capture method reference for use in template
+        const toTitleCase = this.toTitleCase.bind(this);
+        
+        container.innerHTML = `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-medium text-gray-900">Selected Partners (${agents.length})</h3>
+                    <button 
+                        onclick="app.clearAllSelections()"
+                        class="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                        Clear All
+                    </button>
+                </div>
+                
+                ${agents.map(agent => {
+                    const primaryClassification = agent.classifications && agent.classifications.length > 0 
+                        ? agent.classifications[0] 
+                        : null;
+                    
+                    return `
+                        <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">${agent.name}</div>
+                                <div class="text-xs text-gray-500">
+                                    ${primaryClassification 
+                                        ? toTitleCase(primaryClassification.role_type.replace('-', ' '))
+                                        : 'General'}
+                                </div>
+                            </div>
+                            <button 
+                                onclick="app.removeFromSelection(${agent.id})"
+                                class="text-red-500 hover:text-red-700 text-sm"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    `;
+                }).join('')}
+                
+                <div class="pt-3 border-t border-gray-200">
+                    <a href="/compare.html?agent_ids=${agents.map(a => a.id).join(',')}" 
+                       class="w-full bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors block">
+                        Compare All
+                    </a>
+                </div>
+            </div>
+        `;
     }
     
     updateDownloadButton(agents) {
@@ -1923,17 +2615,7 @@ class SubagentGuildApp {
         this.updateComparisonCounter();
     }
     
-    async loadRepositoriesPageData() {
-        // Load repositories page specific data
-        this.updateElement('total-repositories', this.repositories.length);
-    }
-    
-    async loadDownloadPageData() {
-        // Load download page specific data
-        this.loadSelectionFromStorage();
-        this.updateSelectionCounter();
-    }
-    
+      
     loadComparisonListFromStorage() {
         const savedComparison = localStorage.getItem('comparison_list');
         if (savedComparison) {
