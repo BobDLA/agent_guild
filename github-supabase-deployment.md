@@ -718,7 +718,7 @@ git tag -a v1.0-local-baseline -m "Baseline before cloud migration"
 git push origin v1.0-local-baseline
 
 # 2. 创建完整的功能文档快照
-cd /Users/twomonkeys/work/qoder/agent_quild2
+cd /Users/twomonkeys/work/qoder/agent_guild2
 
 # 3. 记录当前系统状态
 echo "=== Current System Baseline ===" > migration-baseline.md
@@ -943,7 +943,7 @@ git checkout -b feature/github-supabase-deployment
 
 #!/bin/bash
 # weekly_verify.sh
-cd /Users/twomonkeys/work/qoder/agent_quild2
+cd /Users/twomonkeys/work/qoder/agent_guild2
 
 # Update local data
 python manage.py sync_repos
@@ -1091,7 +1091,7 @@ async def export_sqlite_to_supabase():
     """Export local SQLite data to Supabase PostgreSQL"""
     
     # Local SQLite connection
-    sqlite_conn = sqlite3.connect('/Users/twomonkeys/work/qoder/agent_quild2/data/db/agents.db')
+    sqlite_conn = sqlite3.connect('/Users/twomonkeys/work/qoder/agent_guild2/data/db/agents.db')
     sqlite_conn.row_factory = sqlite3.Row
     
     # Supabase PostgreSQL connection

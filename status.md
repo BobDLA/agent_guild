@@ -30,7 +30,7 @@
 
 ### ⚠️ GitHub Pages部署问题 (严重)
 - **问题**: GitHub Pages部署出现严重错误，网站无法正常使用
-- **访问URL**: https://bobdla.github.io/agent_quild/
+- **访问URL**: https://bobdla.github.io/agent_guild/
 
 #### 具体错误症状:
 1. **文件缺失问题**:
@@ -40,7 +40,7 @@
 
 2. **JavaScript错误**:
    ```
-   GET https://bobdla.github.io/agent_quild/bundle.js net::ERR_ABORTED 404 (Not Found)
+   GET https://bobdla.github.io/agent_guild/bundle.js net::ERR_ABORTED 404 (Not Found)
    ```
 
 3. **Tailwind CSS警告**:
