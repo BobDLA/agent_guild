@@ -1,0 +1,102 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Subagent Guild - Discover Claude Code Subagents</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script><style>/* Custom styles for the guild theme */
+        .guild-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .agent-card {
+            transition: all 0.3s ease;
+            overflow: visible; /* Allow tooltips to show */
+            position: relative;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        /* Button states */
+        .team-btn.selected {
+            @apply bg-green-500 text-white;
+        }
+        
+        .compare-btn.selected {
+            @apply bg-blue-500 text-white;
+        }
+        
+        /* Text truncation with proper line height */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        
+        /* Responsive card improvements */
+        .agent-card {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .agent-card > div {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        /* Prevent text overflow in small screens */
+        @media (max-width: 640px) {
+            .agent-card {
+                min-height: auto;
+            }
+            
+            .agent-card .flex-wrap {
+                flex-direction: column;
+            }
+            
+            .agent-card .flex-wrap > * {
+                flex: 1;
+                min-width: 100%;
+            }
+        }
+        
+        /* Notification animations */
+        .notification-enter {
+            transform: translateX(100%);
+        }
+        
+        .notification-enter-active {
+            transform: translateX(0);
+            transition: transform 0.3s ease-out;
+        }
+        
+        .classification-badge {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+        
+        .lifecycle-concept { @apply bg-purple-100 text-purple-800; }
+        .lifecycle-design { @apply bg-blue-100 text-blue-800; }
+        .lifecycle-development { @apply bg-green-100 text-green-800; }
+        .lifecycle-testing { @apply bg-yellow-100 text-yellow-800; }
+        .lifecycle-deployment { @apply bg-orange-100 text-orange-800; }
+        .lifecycle-operations { @apply bg-red-100 text-red-800; }
+        .lifecycle-general { @apply bg-gray-100 text-gray-800; }
+        
+        .tech-tag {
+            @apply inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800;
+        }
+        
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }</style><script defer="defer" src="/agent_guild/main.js"></script></head><body class="bg-gray-50 min-h-screen"><nav class="guild-gradient shadow-lg"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex justify-between h-16"><div class="flex items-center"><a href="/" class="flex items-center space-x-2"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center"><span class="text-purple-600 font-bold text-lg">🏰</span></div><span class="text-white font-bold text-xl">Subagent Guild</span></a></div><div class="flex items-center space-x-6"><a href="/agents" class="text-white hover:text-purple-200 transition-colors">Explore Agents </a><a href="/compare" class="text-white hover:text-purple-200 transition-colors flex items-center space-x-1"><span>Compare</span> <span id="comparison-counter" class="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-medium hidden">0</span> </a><a href="/repositories" class="text-white hover:text-purple-200 transition-colors">Repositories </a><a href="/about" class="text-white hover:text-purple-200 transition-colors">About</a><div class="relative"><button onclick="window.location.href='/download.html'" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg transition-colors flex items-center"><span>📦</span></button> <span id="selection-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span></div></div></div></div></nav><main class="flex-1"><div class="guild-gradient"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"><div class="text-center"><h1 class="text-4xl md:text-6xl font-bold text-white mb-6">🏰 Welcome to the Agent Guild</h1><p class="text-xl md:text-2xl text-purple-100 mb-8 max-w-3xl mx-auto">Where developers find their perfect AI partners. Discover, evaluate, and integrate Claude Code subagents from curated repositories.</p><div class="flex flex-col sm:flex-row gap-4 justify-center"><a href="/agents" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors">Explore Guild Halls </a><a href="/agents?sort=popular" class="bg-purple-500 bg-opacity-50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-70 transition-colors">Meet Popular Partners</a></div></div><div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center"><div class="bg-white bg-opacity-10 rounded-lg p-4"><div class="text-3xl font-bold text-white" id="total-agents">-</div><div class="text-purple-100">AI Partners</div></div><div class="bg-white bg-opacity-10 rounded-lg p-4"><div class="text-3xl font-bold text-white" id="total-repositories">-</div><div class="text-purple-100">Guild Halls</div></div><div class="bg-white bg-opacity-10 rounded-lg p-4"><div class="text-3xl font-bold text-white" id="classification-rate">-</div><div class="text-purple-100">Classified</div></div><div class="bg-white bg-opacity-10 rounded-lg p-4"><div class="text-3xl font-bold text-white" id="lifecycle-count">-</div><div class="text-purple-100">Specializations</div></div></div></div></div><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-900 mb-4">🎭 Meet Your Potential Partners</h2><p class="text-xl text-gray-600 max-w-3xl mx-auto">Each AI partner has unique skills and working styles. Find the ones that complement your development approach.</p></div><div class="space-y-12"><div><h3 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center"><span class="mr-3">👥</span> Leadership & Planning Partners</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">💡</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Concept Phase</h4><p class="text-gray-600 text-sm mb-4">Idea generation, requirements analysis, project planning</p><a href="/agents?lifecycle=concept" class="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium">Meet Partners <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🏗️</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Design Phase</h4><p class="text-gray-600 text-sm mb-4">System architecture, design patterns, technical planning</p><a href="/agents?lifecycle=design" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium">Meet Partners <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">📋</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Product Manager</h4><p class="text-gray-600 text-sm mb-4">Feature planning, user stories, roadmap creation</p><a href="/agents?role=product-manager" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium">Find Partners <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🏛️</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">System Architect</h4><p class="text-gray-600 text-sm mb-4">System design, scalability patterns, technical leadership</p><a href="/agents?role=system-architect" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium">Find Partners <span class="ml-1">→</span></a></div></div></div></div><div><h3 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center"><span class="mr-3">⚡</span> Development Timeline Partners</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">💻</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Development Phase</h4><p class="text-gray-600 text-sm mb-4">Code generation, implementation, debugging</p><div class="text-xs text-gray-500 mb-3"><span id="dev-phase-count">-</span> partners available</div><a href="/agents?lifecycle=development" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium">Explore Hall <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🧪</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Testing Phase</h4><p class="text-gray-600 text-sm mb-4">Test creation, quality assurance, validation</p><div class="text-xs text-gray-500 mb-3"><span id="test-phase-count">-</span> partners available</div><a href="/agents?lifecycle=testing" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium">Explore Hall <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🚀</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Deployment Phase</h4><p class="text-gray-600 text-sm mb-4">Release management, CI/CD, infrastructure</p><div class="text-xs text-gray-500 mb-3"><span id="deploy-phase-count">-</span> partners available</div><a href="/agents?lifecycle=deployment" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium">Explore Hall <span class="ml-1">→</span></a></div></div><div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"><div class="text-center"><div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">⚙️</span></div><h4 class="text-lg font-semibold text-gray-900 mb-2">Operations Phase</h4><p class="text-gray-600 text-sm mb-4">Monitoring, optimization, maintenance</p><div class="text-xs text-gray-500 mb-3"><span id="ops-phase-count">-</span> partners available</div><a href="/agents?lifecycle=operations" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium">Explore Hall <span class="ml-1">→</span></a></div></div></div></div></div></div><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-900 mb-4">🗺️ Your Partner Discovery Journey</h2><p class="text-xl text-gray-600">Four simple steps to building your perfect AI development team</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"><div class="text-center"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🏰</span></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Browse Guild Halls</h3><p class="text-gray-600 text-sm">Explore different specialization areas and development phases</p></div><div class="text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">👁️</span></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Meet Partners</h3><p class="text-gray-600 text-sm">Review partner profiles, skills, and working styles</p></div><div class="text-center"><div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🤝</span></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Check Compatibility</h3><p class="text-gray-600 text-sm">Compare partners and see how they work together</p></div><div class="text-center"><div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-2xl">📦</span></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Take Partners Home</h3><p class="text-gray-600 text-sm">Download your selected team as a ready-to-use package</p></div></div></div></main><footer class="bg-gray-800 text-white mt-16"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"><div class="grid grid-cols-1 md:grid-cols-4 gap-8"><div class="col-span-1 md:col-span-2"><div class="flex items-center space-x-2 mb-4"><span class="text-2xl">🏰</span> <span class="text-xl font-bold">Subagent Guild</span></div><p class="text-gray-300 mb-4">Discover, evaluate, and manage Claude Code subagents from multiple public repositories. Find the perfect AI partners for your development projects.</p><div class="flex space-x-4"><span class="text-sm text-gray-400">Built with FastAPI + HTMX</span></div></div><div><h3 class="font-semibold mb-4">Explore</h3><ul class="space-y-2 text-sm text-gray-300"><li><a href="/agents" class="hover:text-white transition-colors">All Agents</a></li><li><a href="/agents?lifecycle=development" class="hover:text-white transition-colors">Development</a></li><li><a href="/agents?lifecycle=testing" class="hover:text-white transition-colors">Testing</a></li><li><a href="/agents?lifecycle=operations" class="hover:text-white transition-colors">Operations</a></li></ul></div><div><h3 class="font-semibold mb-4">Resources</h3><ul class="space-y-2 text-sm text-gray-300"><li><a href="/about" class="hover:text-white transition-colors">About</a></li><li><a href="/repositories" class="hover:text-white transition-colors">Repositories</a></li><li><a href="#" class="hover:text-white transition-colors">API Docs</a></li><li><a href="#" class="hover:text-white transition-colors">GitHub</a></li></ul></div></div><div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400"><p>&copy; 2024 Subagent Guild. Open source project for the Claude Code community.</p></div></div></footer><div id="toast-container" class="fixed bottom-4 right-4 z-50"></div><script src="main.js"></script></body></html>
