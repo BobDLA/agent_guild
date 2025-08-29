@@ -1,5 +1,7 @@
 # Subagent Guild
 
+**Live Demo**: [https://bobdla.github.io/agent_guild/](https://bobdla.github.io/agent_guild/)
+
 A centralized platform for discovering, evaluating, and managing Claude Code subagents from multiple Git repositories. The Subagent Guild aggregates subagents from public repositories, classifies them using Claude API, and provides a web interface for browsing and downloading agent collections.
 
 ## 🌟 The Vision
@@ -103,9 +105,7 @@ Our intelligent classification system categorizes agents into:
 - **Usage Analytics** - Track which agents are most valuable to your team
 - **Custom Integration** - API access for integrating with your tools
 
-## 🌐 Access the Platform
-
-**Live Demo**: [https://bobdla.github.io/agent_guild/](https://bobdla.github.io/agent_guild/)
+## 🚀 Quick Start
 
 **Local Development**:
 - Backend API: `http://localhost:8000` (FastAPI)
