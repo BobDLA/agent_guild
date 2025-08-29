@@ -1,0 +1,97 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>About - Subagent Guild</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script><style>/* Custom styles for the guild theme */
+        .guild-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .agent-card {
+            transition: all 0.3s ease;
+            overflow: visible;
+            position: relative;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .team-btn.selected {
+            @apply bg-green-500 text-white;
+        }
+        
+        .compare-btn.selected {
+            @apply bg-blue-500 text-white;
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        
+        .agent-card {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .agent-card > div {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        @media (max-width: 640px) {
+            .agent-card {
+                min-height: auto;
+            }
+            
+            .agent-card .flex-wrap {
+                flex-direction: column;
+            }
+            
+            .agent-card .flex-wrap > * {
+                flex: 1;
+                min-width: 100%;
+            }
+        }
+        
+        .notification-enter {
+            transform: translateX(100%);
+        }
+        
+        .notification-enter-active {
+            transform: translateX(0);
+            transition: transform 0.3s ease-out;
+        }
+        
+        .classification-badge {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+        
+        .lifecycle-concept { @apply bg-purple-100 text-purple-800; }
+        .lifecycle-design { @apply bg-blue-100 text-blue-800; }
+        .lifecycle-development { @apply bg-green-100 text-green-800; }
+        .lifecycle-testing { @apply bg-yellow-100 text-yellow-800; }
+        .lifecycle-deployment { @apply bg-orange-100 text-orange-800; }
+        .lifecycle-operations { @apply bg-red-100 text-red-800; }
+        .lifecycle-general { @apply bg-gray-100 text-gray-800; }
+        
+        .tech-tag {
+            @apply inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800;
+        }
+        
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }</style><script defer="defer" src="main.js"></script></head><body class="bg-gray-50"><nav class="bg-white shadow-sm border-b"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex justify-between h-16"><div class="flex items-center"><div class="flex-shrink-0"><h1 class="text-xl font-bold text-gray-900">🎭 Subagent Guild</h1></div><div class="hidden md:ml-6 md:flex md:space-x-8"><a href="/" class="text-gray-900 hover:text-gray-700 px-3 py-2 text-sm font-medium">Home</a> <a href="/agents.html" class="text-gray-900 hover:text-gray-700 px-3 py-2 text-sm font-medium">Explore</a> <a href="/compare.html" class="text-gray-900 hover:text-gray-700 px-3 py-2 text-sm font-medium">Compare</a> <a href="/repositories.html" class="text-gray-900 hover:text-gray-700 px-3 py-2 text-sm font-medium">Guild Halls</a> <a href="/about.html" class="text-gray-900 hover:text-gray-700 px-3 py-2 text-sm font-medium">About</a></div></div><div class="flex items-center"><div class="relative"><button onclick="window.location.href='/download.html'" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"><span>📦</span></button> <span id="selection-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span></div></div></div></div></nav><div class="bg-white shadow-sm border-b"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="text-center"><h1 class="text-3xl font-bold text-gray-900">📖 About Subagent Guild</h1><p class="mt-2 text-gray-600">Learn about our mission to organize and discover Claude Code subagents</p></div></div></div><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2"><div class="bg-white rounded-lg shadow-sm p-6 mb-6"><h2 class="text-xl font-semibold text-gray-900 mb-4">Our Mission</h2><p class="text-gray-600 mb-4">The Subagent Guild is a centralized platform for discovering, evaluating, and managing Claude Code subagents from multiple Git repositories. We aim to make it easier for developers to find the right AI development partners for their specific needs.</p><p class="text-gray-600">By aggregating subagents from public repositories, classifying them using Claude API, and providing a comprehensive web interface, we create a thriving ecosystem where developers can discover, evaluate, and utilize specialized AI agents.</p></div><div class="bg-white rounded-lg shadow-sm p-6 mb-6"><h2 class="text-xl font-semibold text-gray-900 mb-4">Key Features</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="border-l-4 border-purple-500 pl-4"><h3 class="font-semibold text-gray-900">Agent Discovery</h3><p class="text-gray-600 text-sm">Browse and search through a curated collection of specialized AI agents</p></div><div class="border-l-4 border-blue-500 pl-4"><h3 class="font-semibold text-gray-900">Smart Classification</h3><p class="text-gray-600 text-sm">Agents are categorized by lifecycle phase and role type for easy discovery</p></div><div class="border-l-4 border-green-500 pl-4"><h3 class="font-semibold text-gray-900">Side-by-Side Comparison</h3><p class="text-gray-600 text-sm">Compare multiple agents to find the perfect match for your project</p></div><div class="border-l-4 border-orange-500 pl-4"><h3 class="font-semibold text-gray-900">Repository Integration</h3><p class="text-gray-600 text-sm">Seamless integration with multiple Git repositories and communities</p></div></div></div><div class="bg-white rounded-lg shadow-sm p-6"><h2 class="text-xl font-semibold text-gray-900 mb-4">Technology Stack</h2><div class="space-y-4"><div><h3 class="font-semibold text-gray-900">Backend</h3><div class="flex flex-wrap gap-2 mt-2"><span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">FastAPI</span> <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">SQLite</span> <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">SQLAlchemy</span> <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Claude API</span></div></div><div><h3 class="font-semibold text-gray-900">Frontend</h3><div class="flex flex-wrap gap-2 mt-2"><span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">HTML5</span> <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">JavaScript</span> <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">Tailwind CSS</span> <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Webpack</span></div></div><div><h3 class="font-semibold text-gray-900">Deployment</h3><div class="flex flex-wrap gap-2 mt-2"><span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">GitHub Pages</span> <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">GitHub Actions</span> <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">Supabase</span></div></div></div></div></div><div class="lg:col-span-1"><div class="bg-white rounded-lg shadow-sm p-6 mb-6"><h2 class="text-xl font-semibold text-gray-900 mb-4">Guild Statistics</h2><div class="space-y-4"><div class="text-center"><div class="text-2xl font-bold text-purple-600" id="total-agents-about">0</div><div class="text-sm text-gray-500">Total Agents</div></div><div class="text-center"><div class="text-2xl font-bold text-blue-600" id="total-repos-about">0</div><div class="text-sm text-gray-500">Repositories</div></div><div class="text-center"><div class="text-2xl font-bold text-green-600" id="total-categories">27</div><div class="text-sm text-gray-500">Role Categories</div></div></div></div><div class="bg-white rounded-lg shadow-sm p-6"><h2 class="text-xl font-semibold text-gray-900 mb-4">Get Involved</h2><div class="space-y-3"><a href="https://github.com/bobdla/agent_guild" target="_blank" class="block text-blue-600 hover:text-blue-800">📁 View on GitHub </a><a href="/agents.html" class="block text-blue-600 hover:text-blue-800">🔍 Browse Agents </a><a href="/download.html" class="block text-blue-600 hover:text-blue-800">💾 Download Collection </a><a href="/repositories.html" class="block text-blue-600 hover:text-blue-800">🏛️ Explore Guild Halls</a></div></div></div></div></div><script src="main.js"></script></body></html>
