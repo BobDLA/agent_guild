@@ -25,6 +25,13 @@ module.exports = {
         test: /\.(woff|woff2|eot|ttf|otf)$/i,
         type: 'asset/resource',
       },
+      {
+        test: /visit-tracker\.js$/,
+        type: 'asset/resource',
+        generator: {
+          filename: 'visit-tracker.js'
+        }
+      },
     ],
   },
   plugins: [
@@ -91,6 +98,30 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/html/download.html',
       filename: 'download.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/admin-stats.html',
+      filename: 'admin-stats.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/html/test-visit-tracking.html',
+      filename: 'test-visit-tracking.html',
       minify: {
         collapseWhitespace: true,
         removeComments: true,

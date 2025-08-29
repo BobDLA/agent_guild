@@ -163,7 +163,7 @@ class SubagentGuildApp {
         });
         
         // Search and filter functionality
-        const searchInput = document.getElementById('quick-search');
+        const searchInput = document.getElementById('search');
         if (searchInput) {
             searchInput.addEventListener('input', this.debounce(() => {
                 this.filters.search = searchInput.value;
@@ -919,7 +919,7 @@ class SubagentGuildApp {
         };
         
         // Reset form elements
-        const searchInput = document.getElementById('quick-search');
+        const searchInput = document.getElementById('search');
         const lifecycleFilter = document.getElementById('lifecycle-filter');
         const roleFilter = document.getElementById('role-filter');
         const repositoryFilter = document.getElementById('repository-filter');
@@ -1260,7 +1260,7 @@ class SubagentGuildApp {
         this.pagination.page = parseInt(params.get('page')) || 1;
         
         // Update UI elements
-        const searchInput = document.getElementById('quick-search');
+        const searchInput = document.getElementById('search');
         if (searchInput) searchInput.value = this.filters.search;
         
         const lifecycleFilter = document.getElementById('lifecycle-filter');
