@@ -9,7 +9,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     clean: true,
-    publicPath: '/agent_guild/'
+    publicPath: '/'
   },
   module: {
     rules: [
@@ -111,12 +111,11 @@ module.exports = {
     hot: true,
     historyApiFallback: {
       rewrites: [
-        { from: /^\/agent_guild\/agents$/, to: '/agents.html' },
-        { from: /^\/agent_guild\/compare$/, to: '/compare.html' },
-        { from: /^\/agent_guild\/repositories$/, to: '/repositories.html' },
-        { from: /^\/agent_guild\/about$/, to: '/about.html' },
-        { from: /^\/agent_guild\/download$/, to: '/download.html' },
-        { from: /^\/agent_guild\/$/, to: '/index.html' },
+        { from: /^\/agents$/, to: '/agents.html' },
+        { from: /^\/compare$/, to: '/compare.html' },
+        { from: /^\/repositories$/, to: '/repositories.html' },
+        { from: /^\/about$/, to: '/about.html' },
+        { from: /^\/download$/, to: '/download.html' },
         { from: /./, to: '/index.html' }
       ]
     }
