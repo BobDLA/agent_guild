@@ -9,7 +9,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     clean: true,
-    publicPath: '/'
+    publicPath: '/agent_guild/'
   },
   module: {
     rules: [

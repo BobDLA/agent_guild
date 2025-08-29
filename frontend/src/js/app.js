@@ -356,7 +356,7 @@ class SubagentGuildApp {
                 <p class="text-gray-600 text-sm mb-4 line-clamp-3">${repo.description || 'No description available'}</p>
                 <div class="flex items-center justify-between">
                     <span class="text-xs text-gray-500">${repo.language || 'Unknown'}</span>
-                    <a href="/agents.html?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                    <a href="${this.handleNavigationGetUrl('/agents')}?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
                         View Agents →
                     </a>
                 </div>
@@ -973,14 +973,17 @@ class SubagentGuildApp {
         const isLocalDevelopment = window.location.protocol === 'file:' || 
                                   (window.location.hostname === 'localhost' && window.location.port === '8080');
         
+        // For GitHub Pages, we need to include the /agent_guild/ prefix
+        const isGitHubPages = window.location.hostname === 'bobdla.github.io';
+        
         // Map paths to actual HTML files
         const pageMap = {
-            '/': isLocalDevelopment ? './index.html' : '/index.html',
-            '/agents': isLocalDevelopment ? './agents.html' : '/agents.html',
-            '/compare': isLocalDevelopment ? './compare.html' : '/compare.html', 
-            '/repositories': isLocalDevelopment ? './repositories.html' : '/repositories.html',
-            '/about': isLocalDevelopment ? './about.html' : '/about.html',
-            '/download': isLocalDevelopment ? './download.html' : '/download.html'
+            '/': isLocalDevelopment ? './index.html' : (isGitHubPages ? '/agent_guild/index.html' : '/index.html'),
+            '/agents': isLocalDevelopment ? './agents.html' : (isGitHubPages ? '/agent_guild/agents.html' : '/agents.html'),
+            '/compare': isLocalDevelopment ? './compare.html' : (isGitHubPages ? '/agent_guild/compare.html' : '/compare.html'), 
+            '/repositories': isLocalDevelopment ? './repositories.html' : (isGitHubPages ? '/agent_guild/repositories.html' : '/repositories.html'),
+            '/about': isLocalDevelopment ? './about.html' : (isGitHubPages ? '/agent_guild/about.html' : '/about.html'),
+            '/download': isLocalDevelopment ? './download.html' : (isGitHubPages ? '/agent_guild/download.html' : '/download.html')
         };
         
         // Get the actual file path
@@ -988,6 +991,25 @@ class SubagentGuildApp {
         
         // Navigate to the page
         window.location.href = filePath;
+    }
+    
+    handleNavigationGetUrl(path) {
+        // Get the proper URL for a path based on the environment
+        const isLocalDevelopment = window.location.protocol === 'file:' || 
+                                  (window.location.hostname === 'localhost' && window.location.port === '8080');
+        
+        const isGitHubPages = window.location.hostname === 'bobdla.github.io';
+        
+        const pageMap = {
+            '/': isLocalDevelopment ? './index.html' : (isGitHubPages ? '/agent_guild/index.html' : '/index.html'),
+            '/agents': isLocalDevelopment ? './agents.html' : (isGitHubPages ? '/agent_guild/agents.html' : '/agents.html'),
+            '/compare': isLocalDevelopment ? './compare.html' : (isGitHubPages ? '/agent_guild/compare.html' : '/compare.html'), 
+            '/repositories': isLocalDevelopment ? './repositories.html' : (isGitHubPages ? '/agent_guild/repositories.html' : '/repositories.html'),
+            '/about': isLocalDevelopment ? './about.html' : (isGitHubPages ? '/agent_guild/about.html' : '/about.html'),
+            '/download': isLocalDevelopment ? './download.html' : (isGitHubPages ? '/agent_guild/download.html' : '/download.html')
+        };
+        
+        return pageMap[path] || path;
     }
     
     async loadPage(path) {
@@ -1249,7 +1271,7 @@ class SubagentGuildApp {
         const addMoreBtn = document.getElementById('add-more-btn');
         if (addMoreBtn) {
             addMoreBtn.onclick = () => {
-                window.location.href = '/agents.html';
+                this.handleNavigation('/agents');
             };
         }
         
@@ -1743,7 +1765,7 @@ class SubagentGuildApp {
         agents.forEach(agent => {
             html += `<td>
                 <div class="flex gap-2">
-                    <a href="/agents.html?id=${agent.id}" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                    <a href="${this.handleNavigationGetUrl('/agents')}?id=${agent.id}" class="bg-purple-600 text-white py-1 px-3 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                         View Details
                     </a>
                     <button onclick="app.removeFromComparison(${agent.id})" class="bg-red-500 text-white py-1 px-3 rounded text-sm hover:bg-red-600 transition-colors">
@@ -1982,7 +2004,7 @@ class SubagentGuildApp {
 
                     <!-- Actions -->
                     <div class="flex space-x-2">
-                        <a href="/agents.html?repository_id=${repo.id}" 
+                        <a href="${this.handleNavigationGetUrl('/agents')}?repository_id=${repo.id}" 
                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-3 rounded-md text-center transition-colors">
                             View Agents
                         </a>
@@ -2201,7 +2223,7 @@ class SubagentGuildApp {
                 }).join('')}
                 
                 <div class="pt-3 border-t border-gray-200">
-                    <a href="/compare.html?agent_ids=${agents.map(a => a.id).join(',')}" 
+                    <a href="${this.handleNavigationGetUrl('/compare')}?agent_ids=${agents.map(a => a.id).join(',')}" 
                        class="w-full bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors block">
                         Compare All
                     </a>
