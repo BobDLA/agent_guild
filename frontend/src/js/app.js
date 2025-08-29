@@ -356,7 +356,7 @@ class SubagentGuildApp {
                 <p class="text-gray-600 text-sm mb-4 line-clamp-3">${repo.description || 'No description available'}</p>
                 <div class="flex items-center justify-between">
                     <span class="text-xs text-gray-500">${repo.language || 'Unknown'}</span>
-                    <a href="/agents?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                    <a href="/agents.html?repository=${repo.id}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
                         View Agents →
                     </a>
                 </div>
@@ -1982,7 +1982,7 @@ class SubagentGuildApp {
 
                     <!-- Actions -->
                     <div class="flex space-x-2">
-                        <a href="/agents?repository_id=${repo.id}" 
+                        <a href="/agents.html?repository_id=${repo.id}" 
                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-3 rounded-md text-center transition-colors">
                             View Agents
                         </a>
